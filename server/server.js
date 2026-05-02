@@ -23,10 +23,6 @@ app.get('*', (req, res) => {
 const PORT       = process.env.PORT || 3000;
 const MONGO_URI  = process.env.MONGODB_URI;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 if (!MONGO_URI) {
   console.error('ERROR: MONGODB_URI is not set in server/.env');
   process.exit(1);
