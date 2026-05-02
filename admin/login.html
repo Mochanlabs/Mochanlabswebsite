@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | Mochan Labs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg:       #050b18;
+      --card:     rgba(13,27,62,0.9);
+      --accent:   #00b4d8;
+      --purple:   #7c3aed;
+      --grad:     linear-gradient(135deg, #00b4d8, #7c3aed);
+      --text:     #f1f5f9;
+      --muted:    #94a3b8;
+      --border:   rgba(255,255,255,0.08);
+      --radius:   14px;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      color: var(--text);
+    }
+    /* Background effects */
+    .bg-glow {
+      position: absolute; border-radius: 50%;
+      filter: blur(90px); opacity: 0.1;
+    }
+    .bg-glow.g1 { width:500px; height:500px; background:var(--accent); top:-150px; right:-150px; }
+    .bg-glow.g2 { width:400px; height:400px; background:var(--purple); bottom:-100px; left:-100px; }
+    .bg-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,180,216,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,180,216,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    /* Card */
+    .login-card {
+      position: relative; z-index: 10;
+      width: 420px; max-width: 95vw;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 42px 38px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.5);
+      animation: fadeUp 0.6s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* Logo */
+    .login-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem; letter-spacing: 1px;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: var(--grad); border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.9rem; color: #fff;
+    }
+    .login-title { font-family:'Poppins',sans-serif; font-size:1.55rem; font-weight:700; margin-bottom:6px; }
+    .login-sub   { color: var(--muted); font-size: 0.88rem; margin-bottom: 30px; }
+
+    /* Form */
+    .form-group { margin-bottom: 18px; }
+    label { display:block; font-size:0.82rem; font-weight:500; color:var(--muted); margin-bottom:7px; }
+    .input-wrap {
+      position: relative;
+    }
+    .input-wrap i {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 0.9rem; pointer-events: none;
+    }
+    .input-wrap input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 11px 14px 11px 40px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 0.9rem;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+    .input-wrap input::placeholder { color: #475569; }
+    .input-wrap input:focus {
+      border-color: var(--accent);
+      background: rgba(0,180,216,0.05);
+      box-shadow: 0 0 0 3px rgba(0,180,216,0.12);
+    }
+    .toggle-pw {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 0.88rem;
+    }
+    .toggle-pw:hover { color: var(--text); }
+
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: var(--grad);
+      border: none; border-radius: 50px;
+      color: #fff; font-family:'Poppins',sans-serif;
+      font-weight: 600; font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(0,180,216,0.3);
+      margin-top: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-login:hover   { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,180,216,0.5); }
+    .btn-login:active  { transform: translateY(0); }
+    .btn-login:disabled{ opacity:0.65; cursor:not-allowed; }
+
+    .error-msg {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171; border-radius: 8px;
+      padding: 10px 14px; font-size: 0.85rem;
+      margin-top: 14px; display: none; text-align: center;
+    }
+
+    .back-link {
+      display: block; text-align: center;
+      margin-top: 22px; color: var(--muted); font-size: 0.82rem;
+    }
+    .back-link a { color: var(--accent); }
+    .back-link a:hover { text-decoration: underline; }
+
+    /* Hint (remove in production) */
+    .hint {
+      background: rgba(0,180,216,0.07); border: 1px solid rgba(0,180,216,0.2);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 0.78rem; color: var(--muted);
+      margin-bottom: 22px; line-height: 1.6;
+    }
+    .hint strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow g1"></div>
+  <div class="bg-glow g2"></div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">ML</div>
+      <span>MOCHAN <strong>LABS</strong></span>
+    </div>
+    <h1 class="login-title">Admin Login</h1>
+    <p class="login-sub">Access the admin dashboard to manage invoices</p>
+
+    <!-- Remove this hint block in production -->
+    <div class="hint">
+      <strong>Default credentials</strong><br>
+      Username: <strong>admin</strong> &nbsp;|&nbsp; Password: <strong>mochan@2024</strong><br>
+      Change these in <code>login.html</code> before going live.
+    </div>
+
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <i class="fas fa-user"></i>
+          <input type="text" id="username" placeholder="Enter username" autocomplete="username" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required>
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Show/hide password">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i>
+        <span id="loginBtnText">Login to Dashboard</span>
+      </button>
+      <div class="error-msg" id="errorMsg">Invalid username or password. Please try again.</div>
+    </form>
+
+    <p class="back-link"><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to website</a></p>
+  </div>
+
+  <script>
+    /* ============================================
+       ADMIN CREDENTIALS — Change before going live
+       ============================================ */
+    const ADMIN_USERNAME = 'admin';
+    const ADMIN_PASSWORD = 'mochan@2024';
+
+    /* Redirect if already logged in */
+    if (sessionStorage.getItem('ml_admin') === 'true') {
+      window.location.href = 'dashboard.html';
+    }
+
+    /* Toggle password visibility */
+    document.getElementById('togglePw').addEventListener('click', () => {
+      const pw  = document.getElementById('password');
+      const ico = document.getElementById('eyeIcon');
+      const show = pw.type === 'password';
+      pw.type  = show ? 'text' : 'password';
+      ico.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+    });
+
+    /* Login form submit */
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('errorMsg');
+      const btn      = document.getElementById('loginBtn');
+      const btnText  = document.getElementById('loginBtnText');
+
+      btn.disabled = true;
+      btnText.textContent = 'Verifying…';
+      errorMsg.style.display = 'none';
+
+      /* Simulate slight delay for UX */
+      setTimeout(() => {
+        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+          sessionStorage.setItem('ml_admin', 'true');
+          window.location.href = 'dashboard.html';
+        } else {
+          errorMsg.style.display = 'block';
+          btn.disabled = false;
+          btnText.textContent = 'Login to Dashboard';
+          document.getElementById('password').value = '';
+          document.getElementById('password').focus();
+        }
+      }, 600);
+    });
+  </script>
+</body>
+</html>
