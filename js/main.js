@@ -15,14 +15,10 @@
 
    3. Replace the four placeholders below with your IDs
    --------------------------------------------------- */
-const EMAILJS_SERVICE_ID        = 'YOUR_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID       = 'YOUR_ADMIN_TEMPLATE_ID';
-const EMAILJS_AUTO_REPLY_ID     = 'YOUR_AUTO_REPLY_TEMPLATE_ID';
-const EMAILJS_PUBLIC_KEY        = 'YOUR_PUBLIC_KEY';
-
-// Replace this with your actual WhatsApp number (with country code, no +)
-// Example: '919876543210' for India
-const WA_NUMBER = '919876543210';
+const EMAILJS_SERVICE_ID        = 'service_9wjhtlg';
+const EMAILJS_TEMPLATE_ID       = 'template_9vjd9ci';
+const EMAILJS_AUTO_REPLY_ID     = 'Ytemplate_9vjd9ci';
+const EMAILJS_PUBLIC_KEY        = 'Y2t6clZCTnmXysZnb6';
 
 (function () {
   'use strict';
@@ -31,11 +27,6 @@ const WA_NUMBER = '919876543210';
   if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
     emailjs.init(EMAILJS_PUBLIC_KEY);
   }
-
-  /* ===== Update WhatsApp links dynamically ===== */
-  document.querySelectorAll('a[href*="wa.me"]').forEach(link => {
-    link.href = `https://wa.me/${WA_NUMBER}`;
-  });
 
   /* ===== Navbar scroll behaviour ===== */
   const navbar     = document.getElementById('navbar');

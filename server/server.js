@@ -22,21 +22,24 @@ app.get('*', (req, res) => {
 
 const PORT       = process.env.PORT || 3000;
 const MONGO_URI  = process.env.MONGODB_URI;
-
+console.log("URI FROM ENV:", process.env.MONGODB_URI);
 if (!MONGO_URI) {
-  console.error('ERROR: MONGODB_URI is not set in server/.env');
-  process.exit(1);
+  console.warn('⚠️  WARNING: MONGODB_URI is not set in server/.env');
 }
 
-mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected');
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
-      console.log(`Admin dashboard → http://localhost:${PORT}/admin/dashboard.html`);
+if (MONGO_URI) {
+  mongoose.connect(MONGO_URI)
+    .then(() => {
+      console.log('✅ MongoDB connected');
+    })
+    .catch(err => {
+      console.error('❌ MongoDB connection failed:', err.message);
+      console.warn('⚠️  Continuing without MongoDB...');
     });
-  })
-  .catch(err => {
-    console.error('MongoDB connection failed:', err.message);
-    process.exit(1);
-  });
+}
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`📱 Admin dashboard → http://localhost:${PORT}/admin/dashboard.html`);
+  console.log(`🌐 Website → http://localhost:${PORT}`);
+});
