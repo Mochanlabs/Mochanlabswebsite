@@ -16,7 +16,7 @@
    3. Replace the four placeholders below with your IDs
    --------------------------------------------------- */
 const EMAILJS_SERVICE_ID        = 'service_9wjhtlg';
-const EMAILJS_TEMPLATE_ID       = 'template_9vjd9ci';
+const EMAILJS_TEMPLATE_ID       = 'template_7ahq6of';
 const EMAILJS_AUTO_REPLY_ID     = 'template_9vjd9ci';
 const EMAILJS_PUBLIC_KEY        = '2t6clZCTnmXysZnb6';
 
@@ -152,13 +152,13 @@ const EMAILJS_PUBLIC_KEY        = '2t6clZCTnmXysZnb6';
     submitBtn.style.opacity = '0.75';
 
     const params = {
+      to_email:   'info@mochanlabs.com',
       from_name:  document.getElementById('name').value.trim(),
       from_email: document.getElementById('email').value.trim(),
       phone:      document.getElementById('phone').value.trim() || 'Not provided',
       service:    document.getElementById('service').value || 'Not specified',
       subject:    document.getElementById('subject').value.trim(),
       message:    document.getElementById('message').value.trim(),
-      to_email:   'info@mochanlabs.com',
     };
 
     try {
@@ -168,6 +168,7 @@ const EMAILJS_PUBLIC_KEY        = '2t6clZCTnmXysZnb6';
         showAlert('success', '✓ Message received! We\'ll get back to you within 24 hours.');
       } else {
         /* Send message to admin */
+        console.log('Sending email with:', { SERVICE_ID: EMAILJS_SERVICE_ID, TEMPLATE_ID: EMAILJS_TEMPLATE_ID, params });
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
 
         /* Send auto-reply to user (if auto-reply template is configured) */

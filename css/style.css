@@ -126,8 +126,13 @@ h3 { font-size: 1.25rem; font-weight: 600; }
 }
 .logo-text {
   display: flex !important;
-  flex-direction: column !important;   /* 👈 forces vertical layout */
+  flex-direction: column !important;
   line-height: 1.1;
+}
+.brand-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .logo-text span {

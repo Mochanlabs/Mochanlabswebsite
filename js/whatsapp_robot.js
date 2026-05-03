@@ -74,25 +74,24 @@ Talk to our team`
   },
 
   /**
-   * Generate WhatsApp link with pre-filled message
-   * @param {string} message - Message to send
+   * Generate WhatsApp link with optional message
+   * @param {string} message - Message to send (optional)
    * @returns {string} WhatsApp URL
    */
-  generateWhatsAppLink(message = null) {
-    const msg = message || this.getWelcomeMessage();
-    const encodedMessage = encodeURIComponent(msg);
-    return `https://wa.me/${this.config.phoneNumber}?text=${encodedMessage}`;
+  generateWhatsAppLink(message = '') {
+    const encodedMessage = encodeURIComponent(message);
+    return encodedMessage
+      ? `https://wa.me/${this.config.phoneNumber}?text=${encodedMessage}`
+      : `https://wa.me/${this.config.phoneNumber}`;
   },
 
   /**
-   * Update all WhatsApp links on the page
+   * Update all WhatsApp links on the page with configured phone number
    */
   initializeLinks() {
-    document.addEventListener('DOMContentLoaded', () => {
-      const waLink = this.generateWhatsAppLink();
-      document.querySelectorAll('a[href*="wa.me"]').forEach(el => {
-        el.href = waLink;
-      });
+    const waLink = this.generateWhatsAppLink();
+    document.querySelectorAll('a[href*="wa.me"]').forEach(el => {
+      el.href = waLink;
     });
   },
 
