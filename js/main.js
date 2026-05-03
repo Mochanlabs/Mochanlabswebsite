@@ -5,14 +5,20 @@
    SETUP EmailJS (to receive contact form emails):
    1. Go to https://www.emailjs.com/ and create a free account
    2. Add a Gmail service (connect your mochanlabs@gmail.com)
-   3. Create an email template with these variables:
-      {{from_name}}, {{from_email}}, {{phone}},
-      {{service}}, {{subject}}, {{message}}
-   4. Replace the three placeholders below with your IDs
+
+   TEMPLATE 1 - Admin Email (receives user message):
+   Variables: {{from_name}}, {{from_email}}, {{phone}},
+   {{service}}, {{subject}}, {{message}}, {{to_email}}
+
+   TEMPLATE 2 - Auto-Reply Email (sent to user):
+   Variables: {{to_email}}, {{to_name}}, {{from_email}}, {{from_name}}
+
+   3. Replace the four placeholders below with your IDs
    --------------------------------------------------- */
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+const EMAILJS_SERVICE_ID        = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID       = 'YOUR_ADMIN_TEMPLATE_ID';
+const EMAILJS_AUTO_REPLY_ID     = 'YOUR_AUTO_REPLY_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY        = 'YOUR_PUBLIC_KEY';
 
 // Replace this with your actual WhatsApp number (with country code, no +)
 // Example: '919876543210' for India
@@ -161,7 +167,7 @@ const WA_NUMBER = '919876543210';
       service:    document.getElementById('service').value || 'Not specified',
       subject:    document.getElementById('subject').value.trim(),
       message:    document.getElementById('message').value.trim(),
-      to_email:   'mochanlabs@gmail.com',
+      to_email:   'info@mochanlabs.com',
     };
 
     try {
@@ -170,7 +176,21 @@ const WA_NUMBER = '919876543210';
         await delay(1400);
         showAlert('success', '✓ Message received! We\'ll get back to you within 24 hours.');
       } else {
+        /* Send message to admin */
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+
+        /* Send auto-reply to user (if auto-reply template is configured) */
+        if (EMAILJS_AUTO_REPLY_ID !== 'YOUR_AUTO_REPLY_TEMPLATE_ID') {
+          const autoReplyParams = {
+            to_email: params.from_email,
+            to_name: params.from_name,
+            from_email: 'info@mochanlabs.com',
+            from_name: 'Mochan Labs'
+          };
+
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_AUTO_REPLY_ID, autoReplyParams);
+        }
+
         showAlert('success', '✓ Message sent! We\'ll get back to you within 24 hours.');
       }
       form.reset();
