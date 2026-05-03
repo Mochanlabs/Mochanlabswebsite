@@ -150,6 +150,13 @@ h3 { font-size: 1.25rem; font-weight: 600; }
   font-weight: 800; font-size: 0.85rem; color: #fff;
   flex-shrink: 0;
 }
+.logo-image {
+  height: 50px;
+  max-height: 60px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
 .nav-links { display: flex; gap: 4px; }
 .nav-links a {
   padding: 7px 14px; border-radius: 8px;

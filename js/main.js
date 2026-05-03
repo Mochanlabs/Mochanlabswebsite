@@ -17,8 +17,8 @@
    --------------------------------------------------- */
 const EMAILJS_SERVICE_ID        = 'service_9wjhtlg';
 const EMAILJS_TEMPLATE_ID       = 'template_9vjd9ci';
-const EMAILJS_AUTO_REPLY_ID     = 'Ytemplate_9vjd9ci';
-const EMAILJS_PUBLIC_KEY        = 'Y2t6clZCTnmXysZnb6';
+const EMAILJS_AUTO_REPLY_ID     = 'template_9vjd9ci';
+const EMAILJS_PUBLIC_KEY        = '2t6clZCTnmXysZnb6';
 
 (function () {
   'use strict';
