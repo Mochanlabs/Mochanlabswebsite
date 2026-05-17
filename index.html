@@ -35,8 +35,8 @@
       <li><a href="#contact">Contact</a></li>
     </ul>
     <div class="nav-right">
-      <button class="btn-signin" id="openSignIn" aria-label="Admin Sign In">
-        <i class="fas fa-user-shield"></i> <span>Sign In</span>
+      <button class="btn-signin" id="openSignIn" aria-label="Admin Login">
+        <i class="fas fa-user-shield"></i> <span>Admin Login</span>
       </button>
       <button class="hamburger" id="hamburger" aria-label="Toggle menu">
         <span></span><span></span><span></span>
@@ -335,7 +335,6 @@
         <div class="social-links">
           <a href="#" class="sl" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
           <a href="#" class="sl" aria-label="Twitter/X"><i class="fab fa-twitter"></i></a>
-          <a href="#" class="sl" aria-label="GitHub"><i class="fab fa-github"></i></a>
           <a href="https://www.instagram.com/mochan_labs/reels/" target="_blank" class="sl" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
           <a href="https://wa.me/919876543210" target="_blank" class="sl sl-wa" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
         </div>
@@ -405,7 +404,6 @@
         <div class="social-links" style="margin-top:20px">
           <a href="#" class="sl" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
           <a href="#" class="sl" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-          <a href="#" class="sl" aria-label="GitHub"><i class="fab fa-github"></i></a>
           <a href="https://www.instagram.com/mochan_labs/reels/" target="_blank" class="sl" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
           <a href="https://wa.me/919876543210" target="_blank" class="sl sl-wa" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
         </div>
@@ -474,7 +472,7 @@
       <div class="logo-icon">ML</div>
       <span>MOCHAN <strong>LABS</strong></span>
     </div>
-    <h2 class="signin-title" id="signinTitle">Admin Sign In</h2>
+    <h2 class="signin-title" id="signinTitle">Admin Login</h2>
     <p class="signin-sub">Access the dashboard to manage invoices</p>
     <form id="signinForm" novalidate>
       <div class="signin-fg">
@@ -496,7 +494,7 @@
       </div>
       <button type="submit" class="btn btn-primary btn-full" id="siBtn">
         <i class="fas fa-sign-in-alt"></i>
-        <span id="siBtnText">Sign In</span>
+        <span id="siBtnText">Admin Login</span>
       </button>
       <div class="signin-error" id="siError">Invalid username or password.</div>
     </form>
@@ -533,7 +531,7 @@
       form.reset();
       errorEl.style.display = 'none';
       btn.disabled = false;
-      btnText.textContent = 'Sign In';
+      btnText.textContent = 'Admin Login';
     }
 
     openBtns.forEach(b => b && b.addEventListener('click', function (e) {
@@ -564,7 +562,7 @@
         } else {
           errorEl.style.display = 'block';
           btn.disabled = false;
-          btnText.textContent = 'Sign In';
+          btnText.textContent = 'Admin Login';
           pwInput.value = '';
           pwInput.focus();
         }
