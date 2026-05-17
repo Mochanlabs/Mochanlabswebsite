@@ -500,6 +500,13 @@ h3 { font-size: 1.25rem; font-weight: 600; }
 .sl-wa { background: #25d366 !important; color: #fff !important; border-color: transparent !important; }
 .sl-wa:hover { background: #1ebe5d !important; }
 
+/* Hide all social icons except WhatsApp and Instagram */
+.sl:has(i.fa-linkedin-in),
+.sl:has(i.fa-twitter),
+.sl:has(i.fa-facebook) {
+  display: none;
+}
+
 /* Contact Form */
 .contact-form-wrapper {
   background: var(--bg-card); border: 1px solid var(--border);
