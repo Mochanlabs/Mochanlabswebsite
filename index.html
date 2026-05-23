@@ -35,9 +35,9 @@
       <li><a href="#contact">Contact</a></li>
     </ul>
     <div class="nav-right">
-      <button class="btn-signin" id="openSignIn" aria-label="Admin Login">
+      <a href="admin/login.html" class="btn-signin" aria-label="Admin Login">
         <i class="fas fa-user-shield"></i> <span>Admin Login</span>
-      </button>
+      </a>
       <button class="hamburger" id="hamburger" aria-label="Toggle menu">
         <span></span><span></span><span></span>
       </button>
@@ -468,7 +468,7 @@
           <li><a href="#why-us">Why Choose Us</a></li>
           <li><a href="#process">Our Process</a></li>
           <li><a href="#contact">Contact</a></li>
-          <li><a href="#" id="footerSignIn">Admin Login</a></li>
+          <li><a href="admin/login.html">Admin Login</a></li>
         </ul>
       </div>
       <div class="footer-contact">
@@ -506,110 +506,9 @@
   <i class="fas fa-chevron-up"></i>
 </button>
 
-<!-- Admin Sign-In Modal -->
-<div class="signin-overlay" id="signinOverlay" role="dialog" aria-modal="true" aria-labelledby="signinTitle">
-  <div class="signin-modal">
-    <button class="signin-close" id="closeSignIn" aria-label="Close"><i class="fas fa-times"></i></button>
-    <div class="signin-logo">
-      <div class="logo-icon">ML</div>
-      <span>MOCHAN <strong>LABS</strong></span>
-    </div>
-    <h2 class="signin-title" id="signinTitle">Admin Login</h2>
-    <p class="signin-sub">Access the dashboard to manage invoices</p>
-    <form id="signinForm" novalidate>
-      <div class="signin-fg">
-        <label for="si-username">Username</label>
-        <div class="signin-input-wrap">
-          <i class="fas fa-user"></i>
-          <input type="text" id="si-username" placeholder="Enter username" autocomplete="username" required>
-        </div>
-      </div>
-      <div class="signin-fg">
-        <label for="si-password">Password</label>
-        <div class="signin-input-wrap">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="si-password" placeholder="Enter password" autocomplete="current-password" required>
-          <button type="button" class="signin-toggle-pw" id="siTogglePw" aria-label="Show/hide password">
-            <i class="fas fa-eye" id="siEyeIcon"></i>
-          </button>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary btn-full" id="siBtn">
-        <i class="fas fa-sign-in-alt"></i>
-        <span id="siBtnText">Admin Login</span>
-      </button>
-      <div class="signin-error" id="siError">Invalid username or password.</div>
-    </form>
-  </div>
-</div>
-
 <!-- EmailJS SDK -->
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="js/whatsapp_robot.js"></script>
 <script src="js/main.js"></script>
-<script>
-  (function () {
-    const ADMIN_USER = 'admin';
-
-    const overlay   = document.getElementById('signinOverlay');
-    const openBtns  = [document.getElementById('openSignIn'), document.getElementById('footerSignIn')];
-    const closeBtn  = document.getElementById('closeSignIn');
-    const form      = document.getElementById('signinForm');
-    const errorEl   = document.getElementById('siError');
-    const btn       = document.getElementById('siBtn');
-    const btnText   = document.getElementById('siBtnText');
-    const pwInput   = document.getElementById('si-password');
-    const eyeIcon   = document.getElementById('siEyeIcon');
-
-    function openModal() {
-      overlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      document.getElementById('si-username').focus();
-    }
-    function closeModal() {
-      overlay.classList.remove('open');
-      document.body.style.overflow = '';
-      form.reset();
-      errorEl.style.display = 'none';
-      btn.disabled = false;
-      btnText.textContent = 'Admin Login';
-    }
-
-    openBtns.forEach(b => b && b.addEventListener('click', function (e) {
-      e.preventDefault();
-      openModal();
-    }));
-    closeBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
-
-    document.getElementById('siTogglePw').addEventListener('click', function () {
-      const show = pwInput.type === 'password';
-      pwInput.type = show ? 'text' : 'password';
-      eyeIcon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
-    });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const user = document.getElementById('si-username').value.trim();
-      const pass = pwInput.value;
-      errorEl.style.display = 'none';
-      btn.disabled = true;
-      btnText.textContent = 'Verifying…';
-      setTimeout(function () {
-        if (user === ADMIN_USER && pass === ADMIN_PASS) {
-          sessionStorage.setItem('ml_admin', 'true');
-          window.location.href = 'admin/dashboard.html';
-        } else {
-          errorEl.style.display = 'block';
-          btn.disabled = false;
-          btnText.textContent = 'Admin Login';
-          pwInput.value = '';
-          pwInput.focus();
-        }
-      }, 600);
-    });
-  })();
-</script>
 </body>
 </html>
