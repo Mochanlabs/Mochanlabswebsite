@@ -491,6 +491,9 @@
         <button class="nav-item" data-page="invoices">
           <i class="fas fa-file-invoice-dollar"></i> Saved Invoices
         </button>
+        <button class="nav-item" data-page="analytics">
+          <i class="fas fa-chart-line"></i> Analytics
+        </button>
       </div>
       <div class="nav-section" style="margin-top:12px">
         <div class="nav-section-title">Quick Links</div>
@@ -775,6 +778,92 @@
       </div>
       <div class="inv-list-grid" id="inv-list-grid"></div>
     </div>
+
+    <!-- ===========================
+         PAGE: ANALYTICS
+    ============================ -->
+    <div class="page-content" id="page-analytics">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card-info">
+            <h4>Unique Visitors</h4>
+            <div class="val" id="stat-visitors">0</div>
+          </div>
+          <div class="stat-card-icon icon-blue"><i class="fas fa-users"></i></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-info">
+            <h4>Total Visits</h4>
+            <div class="val" id="stat-visits">0</div>
+          </div>
+          <div class="stat-card-icon icon-green"><i class="fas fa-mouse"></i></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-info">
+            <h4>Avg Visits/Person</h4>
+            <div class="val" id="stat-avg">0</div>
+          </div>
+          <div class="stat-card-icon icon-purple"><i class="fas fa-chart-bar"></i></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-info">
+            <h4>Top Page</h4>
+            <div class="val" id="stat-top-page" style="font-size:1rem">/</div>
+          </div>
+          <div class="stat-card-icon icon-amber"><i class="fas fa-star"></i></div>
+        </div>
+      </div>
+
+      <div class="section-card" style="margin-bottom:28px">
+        <div class="section-card-header">
+          <h3>Top Pages</h3>
+          <button class="btn-add-line" onclick="refreshAnalytics()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div id="top-pages-wrap">
+          <div class="empty-state" id="top-pages-empty">
+            <i class="fas fa-chart-line" style="color:var(--faint)"></i>
+            <p>No visitor data yet.</p>
+          </div>
+          <table id="top-pages-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Visits</th>
+                <th>% of Total</th>
+              </tr>
+            </thead>
+            <tbody id="top-pages-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3>Recent Visitors (Last 50)</h3>
+        </div>
+        <div id="visitors-wrap">
+          <div class="empty-state" id="visitors-empty">
+            <i class="fas fa-users" style="color:var(--faint)"></i>
+            <p>No visitors yet.</p>
+          </div>
+          <table id="visitors-table" style="display:none;font-size:0.8rem">
+            <thead>
+              <tr>
+                <th>IP Address</th>
+                <th>Country</th>
+                <th>City</th>
+                <th>Visits</th>
+                <th>Pages Visited</th>
+                <th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody id="visitors-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div><!-- end .main -->
 </div><!-- end .app -->
 
@@ -802,7 +891,7 @@ document.getElementById('menuToggle').addEventListener('click', () => {
 });
 
 /* ===== Page navigation ===== */
-const pages = { home: 'Dashboard', 'new-invoice': 'New Invoice', invoices: 'Saved Invoices' };
+const pages = { home: 'Dashboard', 'new-invoice': 'New Invoice', invoices: 'Saved Invoices', analytics: 'Analytics' };
 
 function switchPage(name) {
   document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
@@ -813,6 +902,7 @@ function switchPage(name) {
   document.getElementById('sidebar').classList.remove('open');
   if (name === 'home')     refreshDashboard();
   if (name === 'invoices') renderSavedList();
+  if (name === 'analytics') refreshAnalytics();
 }
 
 document.querySelectorAll('[data-page]').forEach(btn => {
@@ -1366,6 +1456,86 @@ async function downloadSaved(number) {
   if (!inv) return;
   await loadInvoice(number);
   setTimeout(downloadPDF, 300);
+}
+
+/* ===== Analytics ===== */
+let analyticsData = null;
+
+async function refreshAnalytics() {
+  try {
+    const res = await fetch('/api/analytics/stats');
+    if (!res.ok) throw new Error('Failed to fetch analytics');
+    analyticsData = await res.json();
+    renderAnalytics();
+  } catch (err) {
+    showToast('Error loading analytics: ' + err.message, 'error');
+  }
+}
+
+function renderAnalytics() {
+  if (!analyticsData) return;
+
+  const { totalVisitors, totalVisits, topPages, recentVisitors, avgVisitsPerPerson } = analyticsData;
+
+  // Update stat cards
+  document.getElementById('stat-visitors').textContent = totalVisitors;
+  document.getElementById('stat-visits').textContent = totalVisits;
+  document.getElementById('stat-avg').textContent = avgVisitsPerPerson;
+  document.getElementById('stat-top-page').textContent = topPages.length ? topPages[0].page : '—';
+
+  // Top pages table
+  const topPagesTable = document.getElementById('top-pages-table');
+  const topPagesTbody = document.getElementById('top-pages-tbody');
+  const topPagesEmpty = document.getElementById('top-pages-empty');
+
+  if (!topPages.length) {
+    topPagesTable.style.display = 'none';
+    topPagesEmpty.style.display = 'block';
+  } else {
+    topPagesTable.style.display = '';
+    topPagesEmpty.style.display = 'none';
+    topPagesTbody.innerHTML = topPages.map(p => {
+      const pct = totalVisits ? ((p.count / totalVisits) * 100).toFixed(1) : 0;
+      return `
+        <tr>
+          <td><strong>${p.page || '/'}</strong></td>
+          <td>${p.count}</td>
+          <td>${pct}%</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Visitors table
+  const visitorsTable = document.getElementById('visitors-table');
+  const visitorsTbody = document.getElementById('visitors-tbody');
+  const visitorsEmpty = document.getElementById('visitors-empty');
+
+  if (!recentVisitors.length) {
+    visitorsTable.style.display = 'none';
+    visitorsEmpty.style.display = 'block';
+  } else {
+    visitorsTable.style.display = '';
+    visitorsEmpty.style.display = 'none';
+    visitorsTbody.innerHTML = recentVisitors.map(v => {
+      const lastSeenDate = new Date(v.lastSeen).toLocaleDateString('en-IN', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      return `
+        <tr>
+          <td><code style="background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;font-size:0.75rem">${v.ip}</code></td>
+          <td>${v.country}</td>
+          <td>${v.city || '—'}</td>
+          <td><strong>${v.visits}</strong></td>
+          <td style="color:var(--muted);font-size:0.75rem">${v.pages.slice(0, 2).join(', ')}${v.pages.length > 2 ? '...' : ''}</td>
+          <td style="color:var(--faint);font-size:0.75rem">${lastSeenDate}</td>
+        </tr>
+      `;
+    }).join('');
+  }
 }
 
 /* ===== Toast notifications ===== */

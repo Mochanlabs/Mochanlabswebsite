@@ -3,17 +3,33 @@ const express   = require('express');
 const mongoose  = require('mongoose');
 const cors      = require('cors');
 const path      = require('path');
+const { getClientIP, trackVisit } = require('./services/visitTracker');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+// Visit tracking middleware (before static files)
+app.use((req, res, next) => {
+  const excludePaths = ['/api/', '/admin/'];
+  const isExcluded = excludePaths.some(p => req.path.startsWith(p));
+
+  if (!isExcluded && req.method === 'GET') {
+    const ip = getClientIP(req);
+    const userAgent = req.headers['user-agent'] || '';
+    const page = req.path || '/';
+    trackVisit(ip, page, userAgent).catch(err => console.error('Track error:', err));
+  }
+  next();
+});
+
 // Serve the static website files from the project root
 app.use(express.static(path.join(__dirname, '..')));
 
 // API routes
 app.use('/api/invoices', require('./routes/invoices'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Fallback: serve index.html for any non-API, non-static route
 app.get('*', (req, res) => {
