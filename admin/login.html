@@ -166,79 +166,163 @@
     <h1 class="login-title">Admin Login</h1>
     <p class="login-sub">Access the admin dashboard to manage invoices</p>
 
-    <!-- Remove this hint block in production -->
+    <!-- Request OTP Form -->
+    <form id="requestOtpForm" novalidate>
+      <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; text-align: center;">
+        An OTP will be sent to <strong>mochanlabs@gmail.com</strong>
+      </p>
+      <button type="submit" class="btn-login" id="requestOtpBtn">
+        <i class="fas fa-envelope"></i>
+        <span id="requestOtpText">Send OTP to Email</span>
+      </button>
+      <div class="error-msg" id="requestOtpError"></div>
+    </form>
 
-    <form id="loginForm" novalidate>
+    <!-- OTP Verification Form (hidden initially) -->
+    <form id="verifyOtpForm" novalidate style="display: none;">
       <div class="form-group">
-        <label for="username">Username</label>
-        <div class="input-wrap">
-          <i class="fas fa-user"></i>
-          <input type="text" id="username" placeholder="Enter username" autocomplete="username" required>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="password">Password</label>
+        <label for="otpInput">Enter OTP</label>
+        <p style="color: var(--muted); font-size: 0.82rem; margin-bottom: 10px;">Enter the OTP which has been sent to your email</p>
         <div class="input-wrap">
           <i class="fas fa-lock"></i>
-          <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required>
-          <button type="button" class="toggle-pw" id="togglePw" aria-label="Show/hide password">
-            <i class="fas fa-eye" id="eyeIcon"></i>
-          </button>
+          <input type="text" id="otpInput" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="off" required>
         </div>
       </div>
 
-      <button type="submit" class="btn-login" id="loginBtn">
-        <i class="fas fa-sign-in-alt"></i>
-        <span id="loginBtnText">Login to Dashboard</span>
+      <button type="submit" class="btn-login" id="verifyOtpBtn">
+        <i class="fas fa-check"></i>
+        <span id="verifyOtpText">Verify OTP</span>
       </button>
-      <div class="error-msg" id="errorMsg">Invalid username or password. Please try again.</div>
+      <button type="button" class="btn-login" id="resendOtpBtn" style="background: rgba(124,58,237,0.5); margin-top: 10px;">
+        <i class="fas fa-redo"></i>
+        <span>Resend OTP</span>
+      </button>
+      <div class="error-msg" id="verifyOtpError"></div>
     </form>
 
     <p class="back-link"><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to website</a></p>
   </div>
 
   <script>
-    /* ============================================
-       ADMIN CREDENTIALS — Change before going live
-       ============================================ */
-    const ADMIN_USERNAME = 'admin';
+    const API_URL = window.location.origin;
 
-    /* Redirect if already logged in */
     if (sessionStorage.getItem('ml_admin') === 'true') {
       window.location.href = 'dashboard.html';
     }
 
-    /* Toggle password visibility */
-    document.getElementById('togglePw').addEventListener('click', () => {
-      const pw  = document.getElementById('password');
-      const ico = document.getElementById('eyeIcon');
-      const show = pw.type === 'password';
-      pw.type  = show ? 'text' : 'password';
-      ico.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+    const requestOtpForm = document.getElementById('requestOtpForm');
+    const verifyOtpForm = document.getElementById('verifyOtpForm');
+    const requestOtpBtn = document.getElementById('requestOtpBtn');
+    const requestOtpError = document.getElementById('requestOtpError');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const resendOtpBtn = document.getElementById('resendOtpBtn');
+    const otpInput = document.getElementById('otpInput');
+    const verifyOtpError = document.getElementById('verifyOtpError');
+
+    requestOtpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      requestOtpBtn.disabled = true;
+      requestOtpError.style.display = 'none';
+      const originalText = requestOtpBtn.querySelector('span').textContent;
+      requestOtpBtn.querySelector('span').textContent = 'Sending…';
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          requestOtpForm.style.display = 'none';
+          verifyOtpForm.style.display = 'block';
+          otpInput.focus();
+        } else {
+          requestOtpError.textContent = data.message || 'Failed to send OTP';
+          requestOtpError.style.display = 'block';
+        }
+      } catch (error) {
+        requestOtpError.textContent = 'Network error. Please try again.';
+        requestOtpError.style.display = 'block';
+      } finally {
+        requestOtpBtn.disabled = false;
+        requestOtpBtn.querySelector('span').textContent = originalText;
+      }
     });
 
-    /* Login form submit */
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    verifyOtpForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const errorMsg = document.getElementById('errorMsg');
-      const btn      = document.getElementById('loginBtn');
-      const btnText  = document.getElementById('loginBtnText');
+      const otp = otpInput.value.trim();
 
-      btn.disabled = true;
-      btnText.textContent = 'Verifying…';
-      errorMsg.style.display = 'none';
+      if (otp.length !== 6 || isNaN(otp)) {
+        verifyOtpError.textContent = 'Please enter a valid 6-digit OTP';
+        verifyOtpError.style.display = 'block';
+        return;
+      }
 
-      /* Simulate slight delay for UX */
-      setTimeout(() => {
-        // TODO: Implement proper authentication with backend validation
-        errorMsg.style.display = 'block';
-        btn.disabled = false;
-        btnText.textContent = 'Login to Dashboard';
-        document.getElementById('password').value = '';
-        document.getElementById('password').focus();
-      }, 600);
+      verifyOtpBtn.disabled = true;
+      verifyOtpError.style.display = 'none';
+      const originalText = verifyOtpBtn.querySelector('span').textContent;
+      verifyOtpBtn.querySelector('span').textContent = 'Verifying…';
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ otp })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          sessionStorage.setItem('ml_admin', 'true');
+          sessionStorage.setItem('ml_admin_token', data.token);
+          window.location.href = 'dashboard.html';
+        } else {
+          verifyOtpError.textContent = data.message || 'Invalid OTP';
+          verifyOtpError.style.display = 'block';
+          otpInput.value = '';
+          otpInput.focus();
+        }
+      } catch (error) {
+        verifyOtpError.textContent = 'Network error. Please try again.';
+        verifyOtpError.style.display = 'block';
+      } finally {
+        verifyOtpBtn.disabled = false;
+        verifyOtpBtn.querySelector('span').textContent = originalText;
+      }
+    });
+
+    resendOtpBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      resendOtpBtn.disabled = true;
+      const originalText = resendOtpBtn.querySelector('span').textContent;
+      resendOtpBtn.querySelector('span').textContent = 'Sending…';
+      verifyOtpError.style.display = 'none';
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          otpInput.value = '';
+          otpInput.focus();
+        } else {
+          verifyOtpError.textContent = data.message || 'Failed to resend OTP';
+          verifyOtpError.style.display = 'block';
+        }
+      } catch (error) {
+        verifyOtpError.textContent = 'Network error. Please try again.';
+        verifyOtpError.style.display = 'block';
+      } finally {
+        resendOtpBtn.disabled = false;
+        resendOtpBtn.querySelector('span').textContent = originalText;
+      }
     });
   </script>
 </body>

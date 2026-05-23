@@ -2,13 +2,20 @@ require('dotenv').config();
 const express   = require('express');
 const mongoose  = require('mongoose');
 const cors      = require('cors');
+const helmet    = require('helmet');
 const path      = require('path');
+const logger    = require('./services/logger');
 const { getClientIP, trackVisit } = require('./services/visitTracker');
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : '*',
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Visit tracking middleware (before static files)
 app.use((req, res, next) => {
@@ -28,6 +35,7 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, '..')));
 
 // API routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/analytics', require('./routes/analytics'));
 
@@ -38,24 +46,29 @@ app.get('*', (req, res) => {
 
 const PORT       = process.env.PORT || 3000;
 const MONGO_URI  = process.env.MONGODB_URI;
-console.log("URI FROM ENV:", process.env.MONGODB_URI);
+
 if (!MONGO_URI) {
-  console.warn('⚠️  WARNING: MONGODB_URI is not set in server/.env');
+  logger.warn('⚠️  WARNING: MONGODB_URI is not set in server/.env');
 }
 
 if (MONGO_URI) {
   mongoose.connect(MONGO_URI)
     .then(() => {
-      console.log('✅ MongoDB connected');
+      logger.info('✅ MongoDB connected successfully');
     })
     .catch(err => {
-      console.error('❌ MongoDB connection failed:', err.message);
-      console.warn('⚠️  Continuing without MongoDB...');
+      logger.error('❌ MongoDB connection failed:', { error: err.message });
+      logger.warn('⚠️  Continuing without MongoDB...');
     });
 }
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
-  console.log(`📱 Admin dashboard → http://localhost:${PORT}/admin/dashboard.html`);
-  console.log(`🌐 Website → http://localhost:${PORT}`);
+  logger.info(`✅ Server running on port ${PORT}`, {
+    environment: process.env.NODE_ENV,
+    node_version: process.version
+  });
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`📱 Admin dashboard → http://localhost:${PORT}/admin/dashboard.html`);
+    console.log(`🌐 Website → http://localhost:${PORT}`);
+  }
 });
