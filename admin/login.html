@@ -232,16 +232,12 @@
 
       /* Simulate slight delay for UX */
       setTimeout(() => {
-        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-          sessionStorage.setItem('ml_admin', 'true');
-          window.location.href = 'dashboard.html';
-        } else {
-          errorMsg.style.display = 'block';
-          btn.disabled = false;
-          btnText.textContent = 'Login to Dashboard';
-          document.getElementById('password').value = '';
-          document.getElementById('password').focus();
-        }
+        // TODO: Implement proper authentication with backend validation
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btnText.textContent = 'Login to Dashboard';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
       }, 600);
     });
   </script>
