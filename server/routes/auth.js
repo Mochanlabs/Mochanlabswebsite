@@ -13,7 +13,8 @@ const otpRequestLimiter = rateLimit({
   message: 'Too many OTP requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req, res) => process.env.NODE_ENV !== 'production'
+  skip: (req, res) => process.env.NODE_ENV !== 'production',
+  keyGenerator: (req, res) => req.ip || 'unknown'
 });
 
 const otpVerifyLimiter = rateLimit({
@@ -22,7 +23,8 @@ const otpVerifyLimiter = rateLimit({
   message: 'Too many verification attempts, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req, res) => process.env.NODE_ENV !== 'production'
+  skip: (req, res) => process.env.NODE_ENV !== 'production',
+  keyGenerator: (req, res) => req.ip || 'unknown'
 });
 
 const generateOTP = () => {
