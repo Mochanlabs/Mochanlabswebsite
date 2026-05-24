@@ -36,6 +36,9 @@ const sendOTP = async (email, otp) => {
     return true;
   } catch (error) {
     console.error('❌ Error sending OTP email:', error.message);
+    console.error('Error details:', error);
+    console.error('Gmail User:', process.env.GMAIL_USER);
+    console.error('Gmail App Password set:', !!process.env.GMAIL_APP_PASSWORD);
     return false;
   }
 };

@@ -9,7 +9,18 @@ const { getClientIP, trackVisit } = require('./services/visitTracker');
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https:"],
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+    }
+  }
+}));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? 'https://www.mochanlabs.com' : '*',
   credentials: true
