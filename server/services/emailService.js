@@ -1,22 +1,12 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.GMAIL_USER || 'mochanlabs@gmail.com',
-    pass: process.env.GMAIL_APP_PASSWORD
-  },
-  connectionTimeout: 10000,
-  socketTimeout: 10000
-});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendOTP = async (email, otp) => {
   try {
-    const mailOptions = {
-      from: process.env.GMAIL_USER || 'mochanlabs@gmail.com',
+    const msg = {
       to: email,
+      from: process.env.FROM_EMAIL || 'noreply@mochanlabs.com',
       subject: 'Admin Login OTP - Mochan Labs',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -35,14 +25,13 @@ const sendOTP = async (email, otp) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    await sgMail.send(msg);
     console.log(`✅ OTP sent to ${email}`);
     return true;
   } catch (error) {
     console.error('❌ Error sending OTP email:', error.message);
-    console.error('Error details:', error);
-    console.error('Gmail User:', process.env.GMAIL_USER);
-    console.error('Gmail App Password set:', !!process.env.GMAIL_APP_PASSWORD);
+    console.error('SendGrid API Key set:', !!process.env.SENDGRID_API_KEY);
+    console.error('From Email:', process.env.FROM_EMAIL);
     return false;
   }
 };
