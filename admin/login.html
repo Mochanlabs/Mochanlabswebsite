@@ -166,38 +166,31 @@
     <h1 class="login-title">Admin Login</h1>
     <p class="login-sub">Access the admin dashboard to manage invoices</p>
 
-    <!-- Request OTP Form -->
-    <form id="requestOtpForm" novalidate>
-      <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; text-align: center;">
-        An OTP will be sent to <strong>mochanlabs@gmail.com</strong>
-      </p>
-      <button type="submit" class="btn-login" id="requestOtpBtn">
-        <i class="fas fa-envelope"></i>
-        <span id="requestOtpText">Send OTP to Email</span>
-      </button>
-      <div class="error-msg" id="requestOtpError"></div>
-    </form>
-
-    <!-- OTP Verification Form (hidden initially) -->
-    <form id="verifyOtpForm" novalidate style="display: none;">
+    <form id="loginForm" novalidate>
       <div class="form-group">
-        <label for="otpInput">Enter OTP</label>
-        <p style="color: var(--muted); font-size: 0.82rem; margin-bottom: 10px;">Enter the OTP which has been sent to your email</p>
+        <label for="username">Username</label>
         <div class="input-wrap">
-          <i class="fas fa-lock"></i>
-          <input type="text" id="otpInput" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="off" required>
+          <i class="fas fa-user"></i>
+          <input type="text" id="username" placeholder="Enter username" autocomplete="username" required>
         </div>
       </div>
 
-      <button type="submit" class="btn-login" id="verifyOtpBtn">
-        <i class="fas fa-check"></i>
-        <span id="verifyOtpText">Verify OTP</span>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required>
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Show/hide password">
+            <i class="fas fa-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i>
+        <span id="loginBtnText">Login to Dashboard</span>
       </button>
-      <button type="button" class="btn-login" id="resendOtpBtn" style="background: rgba(124,58,237,0.5); margin-top: 10px;">
-        <i class="fas fa-redo"></i>
-        <span>Resend OTP</span>
-      </button>
-      <div class="error-msg" id="verifyOtpError"></div>
+      <div class="error-msg" id="errorMsg">Invalid username or password. Please try again.</div>
     </form>
 
     <p class="back-link"><a href="../index.html"><i class="fas fa-arrow-left"></i> Back to website</a></p>

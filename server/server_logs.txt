@@ -1,0 +1,18 @@
+
+> mochanlabs-server@1.0.0 start
+> node server.js
+
+[32minfo[39m: ✅ Server running on port 3000 {"environment":"development","node_version":"v24.14.1","service":"mochan-admin","timestamp":"2026-05-24 21:58:14"}
+📱 Admin dashboard → http://localhost:3000/admin/dashboard.html
+🌐 Website → http://localhost:3000
+[32minfo[39m: ✅ MongoDB connected successfully {"service":"mochan-admin","timestamp":"2026-05-24 21:58:15"}
+[32minfo[39m: OTP request received {"ip":"::1","service":"mochan-admin","timestamp":"2026-05-24 21:58:30"}
+❌ Error sending OTP email: Forbidden
+SendGrid API Key set: true
+From Email: noreply@mochanlabs.com
+[31merror[39m: Failed to send OTP email {"ip":"::1","service":"mochan-admin","timestamp":"2026-05-24 21:58:30"}
+[32minfo[39m: OTP request received {"ip":"::1","service":"mochan-admin","timestamp":"2026-05-24 22:03:49"}
+❌ Error sending OTP email: Forbidden
+SendGrid API Key set: true
+From Email: noreply@mochanlabs.com
+[31merror[39m: Failed to send OTP email {"ip":"::1","service":"mochan-admin","timestamp":"2026-05-24 22:03:50"}
