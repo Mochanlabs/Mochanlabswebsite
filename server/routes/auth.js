@@ -2,8 +2,13 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../services/logger');
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Mochan@2024';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+  logger.error('Admin credentials not configured in environment variables');
+  throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD must be set in environment variables');
+}
 
 router.post('/login', async (req, res) => {
   try {
