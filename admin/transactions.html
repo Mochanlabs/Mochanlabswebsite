@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transactions | Mochan Labs Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #050b18;
+      --card: rgba(13,27,62,0.85);
+      --accent: #00b4d8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.07);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { margin-bottom: 30px; }
+    .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
+    .header p { color: var(--muted); }
+
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    .btn { padding: 10px 20px; background: var(--accent); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 500; }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: rgba(124,58,237,0.7); }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--muted); }
+    .form-group input,
+    .form-group select { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+
+    .form-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; }
+    .form-modal.open { display: flex; align-items: center; justify-content: center; }
+    .form-content { background: var(--card); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; border: 1px solid var(--border); }
+    .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .close-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+
+    .transactions-list { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .transaction-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: grab; transition: background 0.2s; }
+    .transaction-item:hover { background: rgba(255,255,255,0.02); }
+    .transaction-item.dragging { opacity: 0.5; }
+
+    .drag-handle { margin-right: 15px; color: var(--muted); cursor: grab; }
+    .transaction-info { flex: 1; }
+    .transaction-desc { font-weight: 500; margin-bottom: 5px; }
+    .transaction-meta { font-size: 0.85rem; color: var(--muted); }
+
+    .transaction-amount { font-size: 1.2rem; font-weight: 600; margin-right: 20px; }
+    .credit { color: var(--green); }
+    .debit { color: var(--red); }
+
+    .transaction-actions { display: flex; gap: 10px; }
+    .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; }
+    .icon-btn:hover { color: var(--accent); }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+    .stat-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 5px; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i class="fas fa-exchange-alt"></i> Financial Transactions</h1>
+      <p>Manage credits and debits for your business</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Credits</div>
+        <div class="stat-value credit">$<span id="totalCredits">0</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Debits</div>
+        <div class="stat-value debit">$<span id="totalDebits">0</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Net Balance</div>
+        <div class="stat-value" id="netBalance">$0</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="openAddForm()"><i class="fas fa-plus"></i> Add Transaction</button>
+      <select id="filterType" onchange="filterTransactions()" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+        <option value="">All Types</option>
+        <option value="credit">Credits</option>
+        <option value="debit">Debits</option>
+      </select>
+      <select id="filterStatus" onchange="filterTransactions()" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+
+    <div class="transactions-list" id="transactionsList">
+      <div style="padding: 20px; text-align: center; color: var(--muted);">
+        <i class="fas fa-inbox"></i> No transactions yet
+      </div>
+    </div>
+  </div>
+
+  <div class="form-modal" id="formModal">
+    <div class="form-content">
+      <div class="form-header">
+        <h2 id="formTitle">Add Transaction</h2>
+        <button class="close-btn" onclick="closeForm()">&times;</button>
+      </div>
+      <form id="transactionForm" onsubmit="submitForm(event)">
+        <input type="hidden" id="transactionId">
+
+        <div class="form-group">
+          <label>Type</label>
+          <select id="type" required>
+            <option value="credit">Credit (Money In)</option>
+            <option value="debit">Debit (Money Out)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Amount ($)</label>
+          <input type="number" id="amount" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="description" required>
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="category" placeholder="e.g., Salary, Materials, Rent">
+        </div>
+
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="form-group">
+          <label>Reference ID</label>
+          <input type="text" id="referenceId" placeholder="Invoice #, Invoice #, etc.">
+        </div>
+
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" id="notes" placeholder="Optional notes">
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%;"><i class="fas fa-save"></i> Save Transaction</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="transactions.js"></script>
+</body>
+</html>
