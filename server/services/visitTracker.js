@@ -10,6 +10,61 @@ function getClientIP(req) {
          '0.0.0.0';
 }
 
+function isBot(userAgent, page) {
+  if (!userAgent) return true;
+
+  // Bot user agents
+  const botPatterns = [
+    /bot/i,
+    /crawler/i,
+    /spider/i,
+    /scraper/i,
+    /scanner/i,
+    /curl/i,
+    /wget/i,
+    /python/i,
+    /java(?!script)/i,
+    /go-http-client/i,
+    /nmap/i,
+    /sqlmap/i,
+    /nikto/i,
+    /masscan/i
+  ];
+
+  if (botPatterns.some(pattern => pattern.test(userAgent))) {
+    return true;
+  }
+
+  // Suspicious paths
+  const suspiciousPaths = [
+    /.env/,
+    /.git/,
+    /wp-admin/,
+    /wp-includes/,
+    /xmlrpc/,
+    /wp-json/,
+    /admin\.php/,
+    /\.sql/,
+    /\.backup/,
+    /phpmyadmin/,
+    /cpanel/,
+    /config\./,
+    /backup/,
+    /database/,
+    /password/i,
+    /login\.php/,
+    /shell\.php/,
+    /upload/,
+    /execute/
+  ];
+
+  if (suspiciousPaths.some(pattern => pattern.test(page))) {
+    return true;
+  }
+
+  return false;
+}
+
 async function getGeolocation(ip) {
   // Check cache first
   const cached = geoCache.get(ip);
@@ -38,6 +93,12 @@ async function getGeolocation(ip) {
 
 async function trackVisit(ip, page, userAgent) {
   if (!ip || ip === '0.0.0.0' || ip === '::1') return;
+
+  // Filter out bots and attackers
+  if (isBot(userAgent, page)) {
+    console.log(`🤖 Bot/Attack blocked: ${ip} - ${page}`);
+    return;
+  }
 
   const geo = await getGeolocation(ip);
 
