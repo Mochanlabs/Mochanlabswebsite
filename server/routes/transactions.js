@@ -3,6 +3,10 @@ const router = express.Router();
 const Transaction = require('../models/Transaction');
 const Invoice = require('../models/Invoice');
 const logger = require('../services/logger');
+const authMiddleware = require('../middleware/authMiddleware');
+
+// Protect all transaction routes with authentication
+router.use(authMiddleware);
 
 router.post('/', async (req, res) => {
   try {

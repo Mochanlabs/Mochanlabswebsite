@@ -51,6 +51,11 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/analytics', require('./routes/analytics'));
 
+// Serve protected admin pages
+app.get('/admin/transactions.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'admin', 'transactions.html'));
+});
+
 // Fallback: serve index.html for any non-API, non-static route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));

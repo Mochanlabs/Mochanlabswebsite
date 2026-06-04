@@ -21,6 +21,19 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
+    .login-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #050b18 0%, #0f172a 100%); z-index: 1000; justify-content: center; align-items: center; }
+    .login-screen.active { display: flex; }
+    .login-box { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+    .login-box h1 { font-size: 1.8rem; margin-bottom: 10px; text-align: center; }
+    .login-box p { color: var(--muted); margin-bottom: 30px; text-align: center; font-size: 0.9rem; }
+    .login-box .form-group { margin-bottom: 20px; }
+    .login-box .form-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 500; }
+    .login-box .form-group input { width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1rem; }
+    .login-box .form-group input:focus { outline: none; border-color: var(--accent); background: rgba(0,180,216,0.05); }
+    .login-box .btn { width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 500; font-size: 1rem; }
+    .login-box .btn:hover { opacity: 0.9; }
+    .login-error { color: var(--red); margin-top: 10px; font-size: 0.9rem; text-align: center; }
+
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .header { margin-bottom: 30px; }
     .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
@@ -67,10 +80,32 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1><i class="fas fa-exchange-alt"></i> Financial Transactions</h1>
-      <p>Manage credits and debits for your business</p>
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <h1><i class="fas fa-lock"></i> Admin Login</h1>
+      <p>Access transactions and financial management</p>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" required placeholder="Enter admin username">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="Enter admin password">
+        </div>
+        <button type="submit" class="btn"><i class="fas fa-sign-in-alt"></i> Login</button>
+        <div class="login-error" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="container" id="mainContainer" style="display: none;">
+    <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h1><i class="fas fa-exchange-alt"></i> Financial Transactions</h1>
+        <p>Manage credits and debits for your business</p>
+      </div>
+      <button class="btn" onclick="handleLogout()" style="background: var(--red); height: fit-content;"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </div>
 
     <div class="stats">
@@ -160,6 +195,7 @@
         <button type="submit" class="btn" style="width: 100%;"><i class="fas fa-save"></i> Save Transaction</button>
       </form>
     </div>
+  </div>
   </div>
 
   <script src="transactions.js"></script>

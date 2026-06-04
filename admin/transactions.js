@@ -2,10 +2,79 @@ const API_URL = window.location.origin;
 let allTransactions = [];
 let editingId = null;
 
+function getAuthToken() {
+  return sessionStorage.getItem('ml_admin_token');
+}
+
+function setAuthToken(token) {
+  sessionStorage.setItem('ml_admin', 'true');
+  sessionStorage.setItem('ml_admin_token', token);
+}
+
+function getAuthHeaders() {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+}
+
+function checkAuthentication() {
+  const isAdmin = sessionStorage.getItem('ml_admin') === 'true';
+  const token = getAuthToken();
+  const loginScreen = document.getElementById('loginScreen');
+  const mainContainer = document.getElementById('mainContainer');
+
+  if (!isAdmin || !token) {
+    loginScreen.classList.add('active');
+    mainContainer.style.display = 'none';
+  } else {
+    loginScreen.classList.remove('active');
+    mainContainer.style.display = 'block';
+    loadTransactions();
+  }
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('loginUsername').value;
+  const password = document.getElementById('loginPassword').value;
+  const errorDiv = document.getElementById('loginError');
+
+  fetch(`${API_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      setAuthToken(data.token);
+      checkAuthentication();
+      document.getElementById('loginForm').reset();
+      errorDiv.textContent = '';
+    } else {
+      errorDiv.textContent = data.message || 'Login failed';
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    errorDiv.textContent = 'Network error. Please try again.';
+  });
+}
+
+function handleLogout() {
+  if (confirm('Are you sure you want to logout?')) {
+    sessionStorage.removeItem('ml_admin');
+    sessionStorage.removeItem('ml_admin_token');
+    checkAuthentication();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('date').value = today;
-  loadTransactions();
+  checkAuthentication();
 });
 
 function openAddForm() {
@@ -43,7 +112,7 @@ function submitForm(e) {
 
   fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(payload)
   })
   .then(r => r.json())
@@ -62,8 +131,18 @@ function submitForm(e) {
 }
 
 function loadTransactions() {
-  fetch(`${API_URL}/api/transactions`)
-    .then(r => r.json())
+  fetch(`${API_URL}/api/transactions`, {
+    headers: getAuthHeaders()
+  })
+    .then(r => {
+      if (r.status === 401) {
+        sessionStorage.removeItem('ml_admin');
+        sessionStorage.removeItem('ml_admin_token');
+        checkAuthentication();
+        throw new Error('Unauthorized');
+      }
+      return r.json();
+    })
     .then(data => {
       if (data.success) {
         allTransactions = data.data || [];
@@ -131,7 +210,10 @@ function editTransaction(id) {
 function deleteTransaction(id) {
   if (!confirm('Delete this transaction?')) return;
 
-  fetch(`${API_URL}/api/transactions/${id}`, { method: 'DELETE' })
+  fetch(`${API_URL}/api/transactions/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  })
     .then(r => r.json())
     .then(data => {
       if (data.success) {
