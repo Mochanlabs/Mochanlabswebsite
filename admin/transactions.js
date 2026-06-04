@@ -501,12 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ Export PDF button listener attached');
   }
 
-  // Attach Logout button
-  const logoutBtn = document.querySelector('.logout-btn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', handleLogout);
-    console.log('✅ Logout button listener attached');
-  }
+  // Back button is a link, no need for logout listener (moved to dashboard)
 
   // Attach Close form button
   const closeBtn = document.querySelector('.close-btn');
