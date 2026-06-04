@@ -4,14 +4,18 @@ const API_URL = window.location.origin;
 let allTransactions = [];
 let editingId = null;
 
-// Get current month start and end dates
+// Get current month start and current date (timezone-safe)
 const today = new Date();
-const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+const year = today.getFullYear();
+const month = String(today.getMonth() + 1).padStart(2, '0');
+const day = String(today.getDate()).padStart(2, '0');
+
+const monthStart = `${year}-${month}-01`; // First day of current month
+const currentDay = `${year}-${month}-${day}`; // Current day (today)
 
 let currentFilters = {
-  startDate: monthStart.toISOString().split('T')[0], // Today's date in YYYY-MM-DD
-  endDate: monthEnd.toISOString().split('T')[0], // Today's date in YYYY-MM-DD
+  startDate: monthStart,
+  endDate: currentDay,
   type: '',
   status: ''
 };
@@ -367,6 +371,111 @@ function updateStats(transactions) {
   console.log('📊 Stats updated:', { credits, debits, balance });
 }
 
+function exportPDF() {
+  console.log('📄 Exporting PDF...');
+
+  // Get current filtered transactions
+  let filtered = allTransactions;
+
+  if (currentFilters.startDate || currentFilters.endDate) {
+    filtered = filtered.filter(t => {
+      const transDate = new Date(t.date).toISOString().split('T')[0];
+      if (currentFilters.startDate && transDate < currentFilters.startDate) return false;
+      if (currentFilters.endDate && transDate > currentFilters.endDate) return false;
+      return true;
+    });
+  }
+
+  if (currentFilters.type) {
+    filtered = filtered.filter(t => t.type === currentFilters.type);
+  }
+
+  if (currentFilters.status) {
+    filtered = filtered.filter(t => t.status === currentFilters.status);
+  }
+
+  // Calculate stats
+  const credits = filtered.filter(t => t.type === 'credit').reduce((sum, t) => sum + t.amount, 0);
+  const debits = filtered.filter(t => t.type === 'debit').reduce((sum, t) => sum + t.amount, 0);
+  const balance = credits - debits;
+
+  const fmt = (num) => new Intl.NumberFormat('en-IN').format(num.toFixed(2));
+
+  // Create HTML content for PDF
+  let html = `
+    <div style="font-family: Arial, sans-serif; color: #333;">
+      <h1 style="text-align: center; color: #00b4d8; margin-bottom: 10px;">MOCHAN LABS</h1>
+      <h2 style="text-align: center; color: #555; margin-top: 0;">Financial Transactions Report</h2>
+
+      <div style="border-bottom: 2px solid #00b4d8; padding-bottom: 15px; margin-bottom: 20px;">
+        <p style="margin: 5px 0;"><strong>Date Range:</strong> ${currentFilters.startDate || 'Start'} to ${currentFilters.endDate || 'End'}</p>
+        <p style="margin: 5px 0;"><strong>Type Filter:</strong> ${currentFilters.type || 'All'}</p>
+        <p style="margin: 5px 0;"><strong>Status Filter:</strong> ${currentFilters.status || 'All'}</p>
+        <p style="margin: 5px 0;"><strong>Generated:</strong> ${new Date().toLocaleString('en-IN')}</p>
+      </div>
+
+      <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+        <div style="flex: 1; padding: 15px; background: #f0f8ff; border-left: 4px solid #22c55e; border-radius: 5px;">
+          <p style="margin: 0; color: #666; font-size: 12px;">Total Credits</p>
+          <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #22c55e;">₹${fmt(credits)}</p>
+        </div>
+        <div style="flex: 1; padding: 15px; background: #fff8f0; border-left: 4px solid #ef4444; border-radius: 5px;">
+          <p style="margin: 0; color: #666; font-size: 12px;">Total Debits</p>
+          <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #ef4444;">₹${fmt(debits)}</p>
+        </div>
+        <div style="flex: 1; padding: 15px; background: #f8f8f8; border-left: 4px solid #00b4d8; border-radius: 5px;">
+          <p style="margin: 0; color: #666; font-size: 12px;">Net Balance</p>
+          <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: ${balance >= 0 ? '#22c55e' : '#ef4444'};">₹${fmt(balance)}</p>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+          <tr style="background: #00b4d8; color: white;">
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Date</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Description</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Category</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Type</th>
+            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Status</th>
+            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map((t, idx) => `
+            <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};">
+              <td style="padding: 8px; border: 1px solid #ddd;">${new Date(t.date).toLocaleDateString('en-IN')}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${t.description}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${t.category || '-'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; color: ${t.type === 'credit' ? '#22c55e' : '#ef4444'}; font-weight: bold;">
+                ${t.type === 'credit' ? 'Credit' : 'Debit'}
+              </td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${t.status}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: ${t.type === 'credit' ? '#22c55e' : '#ef4444'}; font-weight: bold;">
+                ${t.type === 'credit' ? '+' : '-'}₹${t.amount.toFixed(2)}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; color: #999; font-size: 12px;">
+        <p>This is an automatically generated report. For official records, please verify with your accountant.</p>
+      </div>
+    </div>
+  `;
+
+  const opt = {
+    margin: 10,
+    filename: `transactions-${new Date().toISOString().split('T')[0]}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
+  };
+
+  html2pdf().set(opt).from(html).save();
+  console.log('✅ PDF exported successfully');
+}
+
 // ===== PAGE INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOM Loaded, attaching event listeners');
@@ -383,6 +492,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (addBtn) {
     addBtn.addEventListener('click', openAddForm);
     console.log('✅ Add button listener attached');
+  }
+
+  // Attach Export PDF button
+  const exportBtn = document.querySelector('.export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportPDF);
+    console.log('✅ Export PDF button listener attached');
   }
 
   // Attach Logout button
