@@ -171,7 +171,7 @@ function renderTransactions(transactions) {
           ${t.status === 'completed' ? '• Linked to Invoice' : '• ' + t.status}
         </div>
       </div>
-      <div class="transaction-amount ${t.type}">${t.type === 'credit' ? '+' : '-'}$${t.amount.toFixed(2)}</div>
+      <div class="transaction-amount ${t.type}">${t.type === 'credit' ? '+' : '-'}₹${t.amount.toFixed(2)}</div>
       <div class="transaction-actions">
         <button class="icon-btn" onclick="editTransaction('${t._id}')" title="Edit">
           <i class="fas fa-edit"></i>
@@ -252,10 +252,17 @@ function updateStats() {
 
   const balance = credits - debits;
 
-  document.getElementById('totalCredits').textContent = credits.toFixed(2);
-  document.getElementById('totalDebits').textContent = debits.toFixed(2);
+  const formatINR = (num) => {
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(num);
+  };
+
+  document.getElementById('totalCredits').textContent = formatINR(credits);
+  document.getElementById('totalDebits').textContent = formatINR(debits);
 
   const balanceEl = document.getElementById('netBalance');
-  balanceEl.textContent = `$${balance.toFixed(2)}`;
+  balanceEl.textContent = `₹${formatINR(balance)}`;
   balanceEl.style.color = balance >= 0 ? '#22c55e' : '#ef4444';
 }
