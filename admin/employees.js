@@ -200,6 +200,26 @@ function closeLetterModal() {
   selectedEmployeeId = null;
 }
 
+// Load logo as base64
+async function loadLogoAsBase64() {
+  try {
+    const response = await fetch('../images/mochan_labs.png');
+    if (!response.ok) throw new Error('Logo not found');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result;
+        resolve(base64);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.log('Could not load logo:', err);
+    return null;
+  }
+}
+
 // Generate letter
 async function generateLetter() {
   const emp = employees.find(e => e._id === selectedEmployeeId);
@@ -207,19 +227,33 @@ async function generateLetter() {
 
   console.log('Generating', selectedLetterType, 'for', emp.firstName);
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  try {
+    // Load and convert logo to base64
+    const logoBase64 = await loadLogoAsBase64();
 
-  // Company header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('MOCHAN LABS', 20, 20);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    // Light blue header background (RGB: 0, 180, 216 - the accent color)
+    doc.setFillColor(0, 180, 216);
+    doc.rect(0, 0, 210, 35, 'F');
+
+    // Add logo to header if available
+    if (logoBase64) {
+      doc.addImage(logoBase64, 'PNG', 15, 5, 18, 18);
+    }
+
+    // Company header
+    const textStartX = 38;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text('MOCHAN LABS', textStartX, 15);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139);
-  doc.text('IT Solutions & Services', 20, 26);
-  doc.text('mochanlabs@gmail.com | India', 20, 31);
+  doc.setTextColor(255, 255, 255);
+  doc.text('IT Solutions & Services', textStartX, 21);
 
   // Letter title and date
   const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -253,9 +287,9 @@ async function generateLetter() {
 
   // Letter title
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(letterTitle, 105, 60, { align: 'center' });
+  doc.setFontSize(13);
+  doc.setTextColor(0, 180, 216);
+  doc.text(letterTitle, 105, 65, { align: 'center' });
 
   // Letter body
   doc.setFont('helvetica', 'normal');
@@ -263,7 +297,7 @@ async function generateLetter() {
   doc.setTextColor(30, 41, 59);
 
   const lines = doc.splitTextToSize(letterContent, 170);
-  let yPos = 75;
+  let yPos = 80;
   lines.forEach(line => {
     if (yPos > 270) {
       doc.addPage();
@@ -285,6 +319,19 @@ async function generateLetter() {
   doc.text('Authorized Signatory', 20, yPos);
   doc.text('MOCHAN LABS', 20, yPos + 15);
 
+  // Add footer to all pages
+  const pageCount = doc.getNumberOfPages();
+  const footerText = 'www.mochanlabs.com | mochanlabs@gmail.com | India';
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(0, 180, 216);
+    doc.rect(0, 285, 210, 12, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text(footerText, 105, 291, { align: 'center' });
+  }
+
   // Save and download
   const fileName = `${emp.firstName}_${emp.lastName}_${selectedLetterType}.pdf`;
   doc.save(fileName);
@@ -293,6 +340,10 @@ async function generateLetter() {
   // Save letter info to backend
   saveLettterInfo(emp._id, selectedLetterType, fileName);
   closeLetterModal();
+  } catch (err) {
+    console.error('Error generating letter:', err);
+    showToast('Error generating letter: ' + err.message, 'error');
+  }
 }
 
 // Letter templates

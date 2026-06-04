@@ -476,7 +476,7 @@
   <!-- ===== SIDEBAR ===== -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon">ML</div>
+      <img src="../images/mochan_labs.png" alt="Mochan Labs Logo" style="width: 50px; height: 50px; object-fit: contain;">
       <span>MOCHAN <strong>LABS</strong></span>
     </div>
     <nav class="sidebar-nav">
@@ -1145,10 +1145,34 @@ async function saveInvoice() {
   }
 }
 
+/* ===== Logo helper for PDFs ===== */
+async function loadInvoiceLogoAsBase64() {
+  try {
+    const response = await fetch('../images/mochan_labs.png');
+    if (!response.ok) throw new Error('Logo not found');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result;
+        resolve(base64);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.log('Could not load logo:', err);
+    return null;
+  }
+}
+
 /* ===== Download PDF ===== */
-function downloadPDF() {
-  const data = getFormData();
-  if (!data.number) { showToast('Enter an invoice number first', 'error'); return; }
+async function downloadPDF() {
+  try {
+    const data = getFormData();
+    if (!data.number) { showToast('Enter an invoice number first', 'error'); return; }
+
+    // Load logo
+    const logoBase64 = await loadInvoiceLogoAsBase64();
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -1156,38 +1180,41 @@ function downloadPDF() {
   const w   = doc.internal.pageSize.getWidth();
   const margin = 18;
 
-  /* Header gradient bar */
+  /* Header light blue bar */
   doc.setFillColor(0, 180, 216);
-  doc.rect(0, 0, w / 2, 12, 'F');
-  doc.setFillColor(124, 58, 237);
-  doc.rect(w / 2, 0, w / 2, 12, 'F');
+  doc.rect(0, 0, w, 35, 'F');
+
+  /* Add logo if available */
+  if (logoBase64) {
+    doc.addImage(logoBase64, 'PNG', 15, 5, 18, 18);
+  }
 
   /* Company name */
+  const companyX = margin + 15;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.setTextColor(15, 23, 42);
-  doc.text('MOCHAN LABS', margin, 24);
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text('MOCHAN LABS', companyX, 15);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('IT Solutions & Services', margin, 29);
-  doc.text('mochanlabs@gmail.com  |  India', margin, 33);
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text('IT Solutions & Services', companyX, 21);
 
   /* Invoice label */
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.setTextColor(0, 180, 216);
-  doc.text('INVOICE', w - margin, 24, { align: 'right' });
+  doc.setTextColor(255, 255, 255);
+  doc.text('INVOICE', w - margin, 15, { align: 'right' });
   doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
-  doc.text('# ' + data.number, w - margin, 29, { align: 'right' });
+  doc.text('# ' + data.number, w - margin, 21, { align: 'right' });
 
   /* Divider */
   doc.setDrawColor(0, 180, 216);
   doc.setLineWidth(0.5);
-  doc.line(margin, 38, w - margin, 38);
+  doc.line(margin, 40, w - margin, 40);
 
   /* Bill to & dates */
   let y = 44;
@@ -1285,18 +1312,15 @@ function downloadPDF() {
   doc.text('TOTAL', col1, ty);
   doc.text(sym + data.grandTotal.toFixed(2), col2, ty, { align: 'right' });
 
-  /* Footer gradient */
+  /* Footer light blue */
   const pageH = doc.internal.pageSize.getHeight();
   ty = ty + 16;
   doc.setFillColor(0, 180, 216);
-  doc.rect(margin, ty, (w - 2 * margin) / 2, 8, 'F');
-  doc.setFillColor(124, 58, 237);
-  doc.rect(margin + (w - 2 * margin) / 2, ty, (w - 2 * margin) / 2, 8, 'F');
-  doc.setFontSize(7);
+  doc.rect(margin, ty, w - 2 * margin, 12, 'F');
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(255, 255, 255);
-  doc.text('MOCHAN LABS | mochanlabs@gmail.com | India', margin + 4, ty + 5);
-  doc.text('Thank you for your business!', w - margin - 4, ty + 5, { align: 'right' });
+  doc.text('www.mochanlabs.com | mochanlabs@gmail.com | India', w / 2, ty + 7, { align: 'center' });
 
   /* Notes */
   if (data.notes || data.terms) {
@@ -1309,6 +1333,10 @@ function downloadPDF() {
 
   doc.save('Invoice-' + data.number + '.pdf');
   showToast('PDF downloaded!', 'info');
+  } catch (err) {
+    console.error('Error downloading PDF:', err);
+    showToast('Error downloading PDF: ' + err.message, 'error');
+  }
 }
 
 /* ===== Clear form ===== */

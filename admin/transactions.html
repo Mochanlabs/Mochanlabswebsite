@@ -36,8 +36,8 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     .header { margin-bottom: 30px; }
-    .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
-    .header p { color: var(--muted); }
+    .header h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; }
+    .header p { color: var(--muted); font-size: 0.85rem; }
 
     .controls { display: flex; gap: 10px; margin-bottom: 20px; }
     .btn { padding: 10px 20px; background: var(--accent); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 500; }
@@ -115,9 +115,12 @@
 
   <div class="container" id="mainContainer" style="display: none;">
     <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start;">
-      <div>
-        <h1><i class="fas fa-exchange-alt"></i> Financial Transactions</h1>
-        <p>Manage credits and debits for your business</p>
+      <div style="display: flex; align-items: center; gap: 20;">
+        <img src="../images/mochan_labs.png" alt="Mochan Labs Logo" style="width: 70px; height: 70px; object-fit: contain;">
+        <div>
+          <h1><i class="fas fa-exchange-alt"></i> Financial Transactions</h1>
+          <p>Manage credits and debits for your business</p>
+        </div>
       </div>
       <div style="display: flex; gap: 10px;">
         <button class="btn export-btn" type="button" style="background: #7c3aed; height: fit-content;"><i class="fas fa-file-pdf"></i> Export PDF</button>

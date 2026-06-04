@@ -24,8 +24,8 @@
 
     .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
     .header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
-    .header p { color: var(--muted); }
+    .header h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; }
+    .header p { color: var(--muted); font-size: 0.85rem; }
     .header-right { display: flex; gap: 10px; }
     .btn { padding: 10px 20px; background: var(--accent); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 500; transition: all 0.2s; }
     .btn:hover { opacity: 0.9; transform: translateY(-2px); }
@@ -35,7 +35,7 @@
     .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
     .section { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); }
-    .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--accent); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--accent); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 
     /* Form styles */
     .form-group { margin-bottom: 16px; }
@@ -93,9 +93,12 @@
 <body>
   <div class="container">
     <div class="header">
-      <div>
-        <h1><i class="fas fa-users"></i> Employees</h1>
-        <p>Manage employees and generate letters</p>
+      <div style="display: flex; align-items: center; gap: 20;">
+        <img src="../images/mochan_labs.png" alt="Mochan Labs Logo" style="width: 70px; height: 70px; object-fit: contain;">
+        <div>
+          <h1><i class="fas fa-users"></i> Employees</h1>
+          <p>Manage employees and generate letters</p>
+        </div>
       </div>
       <div class="header-right">
         <a href="dashboard.html" class="btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
