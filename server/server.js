@@ -49,6 +49,7 @@ app.use(express.static(path.join(__dirname, '..')));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/invoices', require('./routes/invoices'));
+app.use('/api/employees', require('./routes/employees'));
 app.use('/api/analytics', require('./routes/analytics'));
 
 // Serve protected admin pages

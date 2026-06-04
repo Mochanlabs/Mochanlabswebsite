@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees | Mochan Labs Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #050b18;
+      --card: rgba(13,27,62,0.85);
+      --accent: #00b4d8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --purple: #7c3aed;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.07);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; }
+    .header p { color: var(--muted); }
+    .header-right { display: flex; gap: 10px; }
+    .btn { padding: 10px 20px; background: var(--accent); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-secondary { background: var(--purple); }
+    .btn-danger { background: var(--red); }
+
+    .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    .section { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); }
+    .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--accent); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+
+    /* Form styles */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 7px; color: var(--text);
+      font-size: 0.9rem; transition: all 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--accent); background: rgba(0,180,216,0.05);
+      box-shadow: 0 0 0 3px rgba(0,180,216,0.1);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .form-row3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    /* Employee list */
+    .employee-item { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 15px;
+      border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+      transition: all 0.2s; }
+    .employee-item:hover { background: rgba(255,255,255,0.04); border-color: var(--accent); }
+    .employee-info { flex: 1; }
+    .employee-name { font-weight: 600; color: var(--text); }
+    .employee-meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .employee-actions { display: flex; gap: 8px; }
+    .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 5px 10px; transition: all 0.2s; }
+    .icon-btn:hover { color: var(--accent); transform: scale(1.15); }
+
+    /* Letter selection modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; }
+    .modal.open { display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: var(--card); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; border: 1px solid var(--border); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-header h2 { font-size: 1.3rem; margin: 0; }
+    .close-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+    .letter-options { display: grid; gap: 12px; }
+    .letter-option { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 15px;
+      border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .letter-option:hover { background: rgba(0,180,216,0.1); border-color: var(--accent); }
+    .letter-option-title { font-weight: 600; margin-bottom: 5px; }
+    .letter-option-desc { font-size: 0.85rem; color: var(--muted); }
+
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 15px;
+      border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); margin-bottom: 5px; }
+    .stat-label { font-size: 0.85rem; color: var(--muted); }
+
+    @media (max-width: 1200px) {
+      .main-content { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1><i class="fas fa-users"></i> Employees</h1>
+        <p>Manage employees and generate letters</p>
+      </div>
+      <div class="header-right">
+        <a href="dashboard.html" class="btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <!-- Add/Edit Employee Form -->
+      <div class="section">
+        <div class="section-title"><i class="fas fa-user-plus"></i> Employee Information</div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value" id="totalEmployees">0</div>
+            <div class="stat-label">Total Employees</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="offersGenerated">0</div>
+            <div class="stat-label">Offer Letters</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="experienceGenerated">0</div>
+            <div class="stat-label">Experience Letters</div>
+          </div>
+        </div>
+
+        <form id="employeeForm">
+          <input type="hidden" id="employeeId">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name *</label>
+              <input type="text" id="firstName" placeholder="John" required>
+            </div>
+            <div class="form-group">
+              <label>Last Name *</label>
+              <input type="text" id="lastName" placeholder="Doe" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="email" placeholder="john@example.com" required>
+            </div>
+            <div class="form-group">
+              <label>Mobile *</label>
+              <input type="tel" id="mobile" placeholder="+91 98765 43210" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gender *</label>
+              <select id="gender" required>
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" id="dob">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Address *</label>
+            <textarea id="address" placeholder="Street, City, State, PIN" rows="3" required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Position/Designation</label>
+              <input type="text" id="position" placeholder="Software Engineer">
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <input type="text" id="department" placeholder="Engineering">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date of Joining</label>
+              <input type="date" id="dateOfJoining">
+            </div>
+            <div class="form-group">
+              <label>Employee ID</label>
+              <input type="text" id="employeeCode" placeholder="EMP-001">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Skills</label>
+            <textarea id="skills" placeholder="JavaScript, React, Node.js, etc." rows="2"></textarea>
+          </div>
+
+          <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-save"></i> Save Employee
+          </button>
+        </form>
+      </div>
+
+      <!-- Employee List -->
+      <div class="section">
+        <div class="section-title"><i class="fas fa-list"></i> Employees List</div>
+        <div id="employeesList" style="max-height: 800px; overflow-y: auto;">
+          <p style="text-align: center; color: var(--muted); padding: 40px 20px;">
+            <i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+            No employees yet
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Letter Selection Modal -->
+  <div class="modal" id="letterModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Generate Letter for <span id="modalEmployeeName"></span></h2>
+        <button class="close-btn" type="button">&times;</button>
+      </div>
+
+      <div class="letter-options">
+        <div class="letter-option" data-letter-type="offer">
+          <div class="letter-option-title"><i class="fas fa-file-contract"></i> Offer Letter</div>
+          <div class="letter-option-desc">Employment offer with position, salary, and terms</div>
+        </div>
+
+        <div class="letter-option" data-letter-type="experience">
+          <div class="letter-option-title"><i class="fas fa-certificate"></i> Experience Letter</div>
+          <div class="letter-option-desc">Certificate of employment and experience</div>
+        </div>
+
+        <div class="letter-option" data-letter-type="relieving">
+          <div class="letter-option-title"><i class="fas fa-door-open"></i> Relieving Letter</div>
+          <div class="letter-option-desc">Letter confirming resignation/termination</div>
+        </div>
+
+        <div class="letter-option" data-letter-type="salary">
+          <div class="letter-option-title"><i class="fas fa-money-bill"></i> Salary Certificate</div>
+          <div class="letter-option-desc">Certificate of salary and employment</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="employees.js"></script>
+</body>
+</html>

@@ -497,6 +497,9 @@
         <a class="nav-item" href="transactions.html" style="text-decoration: none;">
           <i class="fas fa-exchange-alt"></i> Transactions
         </a>
+        <a class="nav-item" href="employees.html" style="text-decoration: none;">
+          <i class="fas fa-users"></i> Employees & Letters
+        </a>
       </div>
       <div class="nav-section" style="margin-top:12px">
         <div class="nav-section-title">Quick Links</div>
@@ -673,7 +676,7 @@
               <span></span>
             </div>
             <div id="line-items-container"></div>
-            <button class="btn-add-line" onclick="addLineItem()" style="margin-top:4px">
+            <button class="btn-add-line" id="addItemBtn" style="margin-top:4px">
               <i class="fas fa-plus"></i> Add Item
             </button>
           </div>
@@ -685,15 +688,15 @@
               <div>
                 <div class="fg">
                   <label>Tax / GST (%)</label>
-                  <input type="number" id="tax-pct" value="18" min="0" max="100" oninput="calcTotals()">
+                  <input type="number" id="tax-pct" value="18" min="0" max="100">
                 </div>
                 <div class="fg">
                   <label>Discount (%)</label>
-                  <input type="number" id="discount-pct" value="0" min="0" max="100" oninput="calcTotals()">
+                  <input type="number" id="discount-pct" value="0" min="0" max="100">
                 </div>
                 <div class="fg">
                   <label>Currency</label>
-                  <select id="currency" onchange="calcTotals()">
+                  <select id="currency">
                     <option value="₹">INR (₹)</option>
                     <option value="$">USD ($)</option>
                     <option value="€">EUR (€)</option>
@@ -738,13 +741,13 @@
 
           <!-- Action Buttons -->
           <div class="action-btns">
-            <button class="btn-action btn-save" onclick="saveInvoice()">
+            <button class="btn-action btn-save" id="saveBtnInv">
               <i class="fas fa-save"></i> Save Invoice
             </button>
-            <button class="btn-action btn-download" onclick="downloadPDF()">
+            <button class="btn-action btn-download" id="downloadBtnInv">
               <i class="fas fa-file-pdf"></i> Download PDF
             </button>
-            <button class="btn-action btn-clear" onclick="clearForm()">
+            <button class="btn-action btn-clear" id="clearBtnInv">
               <i class="fas fa-trash-alt"></i> Clear
             </button>
           </div>
@@ -874,6 +877,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
+<!-- Dashboard transactions module -->
+<script src="dashboard-transactions.js"></script>
+
 <script>
 'use strict';
 
@@ -938,14 +944,25 @@ function addLineItem(desc = '', qty = '', rate = '') {
   div.className = 'line-item';
   div.dataset.idx = idx;
   div.innerHTML = `
-    <input type="text"   class="desc-input"   placeholder="Service / item description" value="${desc}" oninput="updatePreview()">
-    <input type="number" class="qty-input"    placeholder="1"   min="0" value="${qty}"  oninput="calcItem(this);calcTotals()">
-    <input type="number" class="rate-input"   placeholder="0.00" min="0" value="${rate}" oninput="calcItem(this);calcTotals()">
+    <input type="text"   class="desc-input"   placeholder="Service / item description" value="${desc}">
+    <input type="number" class="qty-input"    placeholder="1"   min="0" value="${qty}">
+    <input type="number" class="rate-input"   placeholder="0.00" min="0" value="${rate}">
     <input type="text"   class="amount-field" placeholder="0.00" readonly>
-    <button class="btn-remove-line" onclick="removeLine(this)" title="Remove"><i class="fas fa-times"></i></button>
+    <button class="btn-remove-line" title="Remove"><i class="fas fa-times"></i></button>
   `;
   container.appendChild(div);
-  calcItem(div.querySelector('.qty-input'));
+
+  const descInput = div.querySelector('.desc-input');
+  const qtyInput = div.querySelector('.qty-input');
+  const rateInput = div.querySelector('.rate-input');
+  const removeBtn = div.querySelector('.btn-remove-line');
+
+  descInput.addEventListener('input', updatePreview);
+  qtyInput.addEventListener('input', () => { calcItem(qtyInput); calcTotals(); });
+  rateInput.addEventListener('input', () => { calcItem(rateInput); calcTotals(); });
+  removeBtn.addEventListener('click', () => removeLine(removeBtn));
+
+  calcItem(qtyInput);
   calcTotals();
 }
 
@@ -1563,6 +1580,22 @@ document.querySelectorAll('#page-new-invoice input, #page-new-invoice textarea, 
   addLineItem();
   updatePreview();
   refreshDashboard();
+
+  // Attach Add Item button listener
+  const addItemBtn = document.getElementById('addItemBtn');
+  if (addItemBtn) {
+    addItemBtn.addEventListener('click', openTransactionSelector);
+  }
+
+  // Attach tax/discount/currency listeners
+  document.getElementById('tax-pct').addEventListener('input', calcTotals);
+  document.getElementById('discount-pct').addEventListener('input', calcTotals);
+  document.getElementById('currency').addEventListener('change', calcTotals);
+
+  // Attach action button listeners
+  document.getElementById('saveBtnInv').addEventListener('click', saveInvoice);
+  document.getElementById('downloadBtnInv').addEventListener('click', downloadPDF);
+  document.getElementById('clearBtnInv').addEventListener('click', clearForm);
 })();
 </script>
 </body>
