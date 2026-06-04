@@ -3,8 +3,15 @@ console.log('=== TRANSACTIONS.JS STARTING ===');
 const API_URL = window.location.origin;
 let allTransactions = [];
 let editingId = null;
+
+// Get current month start and end dates
+const today = new Date();
+const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
 let currentFilters = {
-  month: new Date().toISOString().slice(0, 7), // YYYY-MM format
+  startDate: monthStart.toISOString().split('T')[0], // Today's date in YYYY-MM-DD
+  endDate: monthEnd.toISOString().split('T')[0], // Today's date in YYYY-MM-DD
   type: '',
   status: ''
 };
@@ -131,7 +138,6 @@ function submitForm(e) {
   const date = document.getElementById('date').value;
   const status = document.getElementById('status').value;
   const referenceId = document.getElementById('referenceId').value || '';
-  const notes = document.getElementById('notes').value || '';
 
   if (!amount || !description) {
     alert('Please fill in Amount and Description');
@@ -139,7 +145,7 @@ function submitForm(e) {
   }
 
   const payload = {
-    type, amount, description, category, date, status, referenceId, notes
+    type, amount, description, category, date, status, referenceId
   };
 
   const url = transactionId
@@ -190,13 +196,20 @@ function applyFilters() {
 
   let filtered = allTransactions;
 
-  // Filter by month
-  if (currentFilters.month) {
+  // Filter by date range
+  if (currentFilters.startDate || currentFilters.endDate) {
     filtered = filtered.filter(t => {
-      const transDate = new Date(t.date).toISOString().slice(0, 7);
-      return transDate === currentFilters.month;
+      const transDate = new Date(t.date).toISOString().split('T')[0];
+
+      if (currentFilters.startDate && transDate < currentFilters.startDate) {
+        return false;
+      }
+      if (currentFilters.endDate && transDate > currentFilters.endDate) {
+        return false;
+      }
+      return true;
     });
-    console.log('After month filter:', filtered.length);
+    console.log('After date filter:', filtered.length);
   }
 
   // Filter by type
@@ -223,6 +236,29 @@ function renderTransactions(transactions) {
     return;
   }
 
+  const getStatusBadge = (status) => {
+    let color = '#94a3b8';
+    let icon = 'fa-clock';
+    let text = 'Pending';
+
+    if (status === 'completed') {
+      color = '#22c55e';
+      icon = 'fa-check-circle';
+      text = 'Completed';
+    } else if (status === 'cancelled') {
+      color = '#ef4444';
+      icon = 'fa-times-circle';
+      text = 'Cancelled';
+    }
+
+    return `
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(${color}, 0.1); border-radius: 6px; border: 1px solid ${color}; color: ${color}; font-size: 0.85rem; font-weight: 500; white-space: nowrap;">
+        <i class="fas ${icon}" style="font-size: 0.9rem;"></i>
+        ${text}
+      </div>
+    `;
+  };
+
   list.innerHTML = transactions.map(t => `
     <div class="transaction-item">
       <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
@@ -232,8 +268,11 @@ function renderTransactions(transactions) {
           ${t.category || ''} • ${new Date(t.date).toLocaleDateString()}
         </div>
       </div>
-      <div class="transaction-amount ${t.type}">
-        ${t.type === 'credit' ? '+' : '-'}₹${t.amount.toFixed(2)}
+      <div style="display: flex; gap: 15px; align-items: center;">
+        ${getStatusBadge(t.status)}
+        <div class="transaction-amount ${t.type}">
+          ${t.type === 'credit' ? '+' : '-'}₹${t.amount.toFixed(2)}
+        </div>
       </div>
       <div class="transaction-actions">
         <button class="icon-btn edit-btn" type="button" data-id="${t._id}">
@@ -272,14 +311,13 @@ function editTransaction(id) {
   editingId = id;
   document.getElementById('formTitle').textContent = 'Edit Transaction';
   document.getElementById('transactionId').value = id;
+  document.getElementById('date').value = new Date(t.date).toISOString().split('T')[0];
   document.getElementById('type').value = t.type;
   document.getElementById('amount').value = t.amount;
   document.getElementById('description').value = t.description;
-  document.getElementById('category').value = t.category || '';
-  document.getElementById('date').value = new Date(t.date).toISOString().split('T')[0];
   document.getElementById('status').value = t.status || 'pending';
+  document.getElementById('category').value = t.category || '';
   document.getElementById('referenceId').value = t.referenceId || '';
-  document.getElementById('notes').value = t.notes || '';
   document.getElementById('formModal').classList.add('open');
 }
 
@@ -369,18 +407,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Attach filter listeners
-  const filterMonth = document.getElementById('filterMonth');
+  const filterStartDate = document.getElementById('filterStartDate');
+  const filterEndDate = document.getElementById('filterEndDate');
   const filterType = document.getElementById('filterType');
   const filterStatus = document.getElementById('filterStatus');
 
-  if (filterMonth) {
-    filterMonth.value = currentFilters.month;
-    filterMonth.addEventListener('change', (e) => {
-      currentFilters.month = e.target.value;
-      console.log('📅 Month changed to:', e.target.value);
+  if (filterStartDate) {
+    filterStartDate.value = currentFilters.startDate;
+    filterStartDate.addEventListener('change', (e) => {
+      currentFilters.startDate = e.target.value;
+      console.log('📅 Start date changed to:', e.target.value);
       applyFilters();
     });
-    console.log('✅ Month filter listener attached');
+    console.log('✅ Start date filter listener attached');
+  }
+
+  if (filterEndDate) {
+    filterEndDate.value = currentFilters.endDate;
+    filterEndDate.addEventListener('change', (e) => {
+      currentFilters.endDate = e.target.value;
+      console.log('📅 End date changed to:', e.target.value);
+      applyFilters();
+    });
+    console.log('✅ End date filter listener attached');
   }
 
   if (filterType) {

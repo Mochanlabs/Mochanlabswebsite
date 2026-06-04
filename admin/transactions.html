@@ -47,13 +47,27 @@
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--muted); }
     .form-group input,
-    .form-group select { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); }
+    .form-group select { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); text-align: left; }
 
     .form-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; }
     .form-modal.open { display: flex; align-items: center; justify-content: center; }
-    .form-content { background: var(--card); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; border: 1px solid var(--border); }
+    .form-content { background: var(--card); padding: 25px; border-radius: 12px; width: 90%; max-width: 900px; border: 1px solid var(--border); max-height: 85vh; overflow-y: auto; }
     .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .close-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }
+
+    #transactionForm { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+    #transactionForm .form-group { margin-bottom: 0; }
+    /* Row 1: Date, Type, Amount */
+    #transactionForm .form-group:nth-child(1) { grid-column: 1 / 2; }
+    #transactionForm .form-group:nth-child(2) { grid-column: 2 / 3; }
+    #transactionForm .form-group:nth-child(3) { grid-column: 3 / 4; }
+    /* Row 2: Description, Status, Category */
+    #transactionForm .form-group:nth-child(4) { grid-column: 1 / 2; }
+    #transactionForm .form-group:nth-child(5) { grid-column: 2 / 3; }
+    #transactionForm .form-group:nth-child(6) { grid-column: 3 / 4; }
+    /* Row 3: Reference ID */
+    #transactionForm .form-group:nth-child(7) { grid-column: 1 / 2; }
+    #transactionForm button[type="submit"] { grid-column: 1 / -1; margin-top: 10px; }
 
     .transactions-list { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
     .transaction-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: grab; transition: background 0.2s; }
@@ -125,7 +139,19 @@
 
     <div class="controls">
       <button class="btn add-btn" type="button"><i class="fas fa-plus"></i> Add Transaction</button>
-      <input type="month" id="filterMonth" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label style="color: var(--muted); font-size: 0.9rem;">From:</label>
+        <input type="date" id="filterStartDate" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; position: relative;" title="Click to select start date">
+        <i class="fas fa-calendar" style="color: var(--muted); margin-left: -30px; pointer-events: none;"></i>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label style="color: var(--muted); font-size: 0.9rem;">To:</label>
+        <input type="date" id="filterEndDate" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; position: relative;" title="Click to select end date">
+        <i class="fas fa-calendar" style="color: var(--muted); margin-left: -30px; pointer-events: none;"></i>
+      </div>
+
       <select id="filterType" style="padding: 10px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
         <option value="">All Types</option>
         <option value="credit">Credits</option>
@@ -155,6 +181,12 @@
       <form id="transactionForm">
         <input type="hidden" id="transactionId">
 
+        <!-- Row 1: Date, Type, Amount -->
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="date" required>
+        </div>
+
         <div class="form-group">
           <label>Type</label>
           <select id="type" required>
@@ -168,19 +200,10 @@
           <input type="number" id="amount" step="0.01" required>
         </div>
 
+        <!-- Row 2: Description, Status, Category -->
         <div class="form-group">
           <label>Description</label>
           <input type="text" id="description" required>
-        </div>
-
-        <div class="form-group">
-          <label>Category</label>
-          <input type="text" id="category" placeholder="e.g., Salary, Materials, Rent">
-        </div>
-
-        <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="date" required>
         </div>
 
         <div class="form-group">
@@ -193,13 +216,14 @@
         </div>
 
         <div class="form-group">
-          <label>Reference ID</label>
-          <input type="text" id="referenceId" placeholder="Invoice #, Invoice #, etc.">
+          <label>Category</label>
+          <input type="text" id="category" placeholder="e.g., Salary, Materials, Rent">
         </div>
 
+        <!-- Row 3: Reference ID -->
         <div class="form-group">
-          <label>Notes</label>
-          <input type="text" id="notes" placeholder="Optional notes">
+          <label>Reference ID</label>
+          <input type="text" id="referenceId" placeholder="Invoice #, etc.">
         </div>
 
         <button type="submit" class="btn" style="width: 100%;"><i class="fas fa-save"></i> Save Transaction</button>
