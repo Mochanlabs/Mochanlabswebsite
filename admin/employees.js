@@ -6,7 +6,23 @@ let selectedEmployeeId = null;
 let selectedLetterType = null;
 let positionHistory = [];
 let tempPositionChanges = []; // For new position changes being added
+let tempIdentityDocuments = []; // For new identity documents being added
 let showInactiveEmployees = false;
+
+// Helper function to format date for input field (YYYY-MM-DD)
+function formatDateForInput(dateString) {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    console.error('Error formatting date:', dateString, e);
+    return '';
+  }
+}
 
 function getAuthHeaders() {
   const token = sessionStorage.getItem('ml_admin_token');
@@ -54,6 +70,13 @@ function attachEventListeners() {
   if (addPositionChangeBtn) {
     addPositionChangeBtn.addEventListener('click', addPositionChange);
     console.log('✅ Add Position Change button listener attached');
+  }
+
+  // Add Identity Document button
+  const addIdentityBtn = document.getElementById('addIdentityBtn');
+  if (addIdentityBtn) {
+    addIdentityBtn.addEventListener('click', addIdentityDocument);
+    console.log('✅ Add Identity Document button listener attached');
   }
 
   // Letter modal close buttons
@@ -105,7 +128,7 @@ function attachEventListeners() {
 // Load employees
 function loadEmployees() {
   console.log('Loading employees...');
-  fetch(`${API_URL}/api/employees`, {
+  return fetch(`${API_URL}/api/employees`, {
     headers: getAuthHeaders()
   })
   .then(r => r.json())
@@ -115,8 +138,12 @@ function loadEmployees() {
       renderEmployeesList();
       updateStats();
     }
+    return data;
   })
-  .catch(err => console.error('Error loading employees:', err));
+  .catch(err => {
+    console.error('Error loading employees:', err);
+    return { success: false, error: err.message };
+  });
 }
 
 // Render employees list
@@ -157,18 +184,34 @@ function renderEmployeesList() {
         <button class="icon-btn" title="${emp.isActive ? 'Mark as Inactive' : 'View'}" data-employee-id="${emp._id}" style="${!emp.isActive ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
           <i class="fas fa-${emp.isActive ? 'door-open' : 'eye'}"></i>
         </button>
+        <button class="icon-btn permanent-delete-btn" title="Permanently Delete" data-employee-id="${emp._id}" style="color: var(--red);">
+          <i class="fas fa-times-circle"></i>
+        </button>
       </div>
     </div>
   `).join('');
 
   // Attach action listeners
-  document.querySelectorAll('.employee-item .icon-btn').forEach((btn, idx) => {
+  document.querySelectorAll('.employee-item .icon-btn:not(.permanent-delete-btn)').forEach((btn, idx) => {
     const empId = btn.dataset.employeeId;
-    if (idx % 3 === 0) btn.addEventListener('click', () => openLetterModal(empId));
-    else if (idx % 3 === 1) btn.addEventListener('click', () => editEmployee(empId));
-    else btn.addEventListener('click', () => {
+    const buttonIndex = idx % 4; // Now 4 buttons per employee
+
+    if (buttonIndex === 0) btn.addEventListener('click', () => openLetterModal(empId));
+    else if (buttonIndex === 1) btn.addEventListener('click', () => editEmployee(empId));
+    else if (buttonIndex === 2) {
+      btn.addEventListener('click', () => {
+        const emp = employees.find(e => e._id === empId);
+        if (emp.isActive) openRelievingModal(empId);
+      });
+    }
+  });
+
+  // Permanent delete button
+  document.querySelectorAll('.permanent-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const empId = btn.dataset.employeeId;
       const emp = employees.find(e => e._id === empId);
-      if (emp.isActive) openRelievingModal(empId);
+      permanentlyDeleteEmployee(empId, emp.firstName, emp.lastName);
     });
   });
 }
@@ -243,23 +286,38 @@ async function saveEmployee(e) {
     dateOfJoining: document.getElementById('dateOfJoining').value,
     workLocation: document.getElementById('workLocation').value,
     officialEmail: document.getElementById('officialEmail').value,
-    probationPeriod: document.getElementById('probationPeriod').value,
+    probationPeriod: document.getElementById('probationPeriod').value
   };
 
-  // If there are temp position changes, use the first one as the initial position
-  if (tempPositionChanges.length > 0) {
+  // If creating a new employee (not editing), add position info from first position change
+  if (!empId && tempPositionChanges.length > 0) {
     const firstChange = tempPositionChanges[0];
     data.position = firstChange.position;
     data.ctc = firstChange.ctc;
     data.department = firstChange.department;
-    data.effectiveDate = firstChange.effectiveDate;
+    data.dateOfJoining = firstChange.effectiveDate || data.dateOfJoining;
+    console.log('Position data from temp changes (new employee):', data.position, data.department, data.ctc);
+  } else if (empId) {
+    console.log('Updating existing employee - position changes will be saved separately');
+  } else {
+    console.log('No position changes added for new employee');
   }
 
   try {
     const method = empId ? 'PUT' : 'POST';
     const url = empId ? `${API_URL}/api/employees/${empId}` : `${API_URL}/api/employees`;
 
-    console.log('Sending employee data:', data);
+    console.log('===== SAVING EMPLOYEE =====');
+    console.log('Method:', method);
+    console.log('URL:', url);
+    console.log('Full data object:', data);
+    console.log('Data keys:', Object.keys(data));
+    console.log('DOB value:', data.dob);
+    console.log('Reporting Manager:', data.reportingManager);
+    console.log('Date of Joining:', data.dateOfJoining);
+    console.log('Work Location:', data.workLocation);
+    console.log('Official Email:', data.officialEmail);
+    console.log('Probation Period:', data.probationPeriod);
 
     const res = await fetch(url, {
       method,
@@ -268,7 +326,18 @@ async function saveEmployee(e) {
     });
 
     const responseData = await res.json();
-    console.log('Response:', responseData);
+    console.log('===== RESPONSE =====');
+    console.log('Status:', res.status);
+    console.log('Response data:', responseData);
+    if (responseData.data) {
+      console.log('Saved employee fields:');
+      console.log('- DOB:', responseData.data.dob);
+      console.log('- Reporting Manager:', responseData.data.reportingManager);
+      console.log('- Date of Joining:', responseData.data.dateOfJoining);
+      console.log('- Work Location:', responseData.data.workLocation);
+      console.log('- Official Email:', responseData.data.officialEmail);
+      console.log('- Probation Period:', responseData.data.probationPeriod);
+    }
 
     if (!res.ok) {
       // Handle 401 Unauthorized
@@ -301,14 +370,83 @@ async function saveEmployee(e) {
       throw new Error(responseData.error || `Save failed (Status: ${res.status})`);
     }
 
+    const savedEmployee = responseData.data;
+    const employeeId = savedEmployee._id;
+
+    // Save identity documents if any
+    if (tempIdentityDocuments.length > 0) {
+      console.log('Saving identity documents:', tempIdentityDocuments);
+      for (const doc of tempIdentityDocuments) {
+        if (doc.isSaved) {
+          console.log('Skipping already saved identity document:', doc.id);
+          continue; // Skip already saved documents
+        }
+        try {
+          const identityRes = await fetch(`${API_URL}/api/employees/${employeeId}/identity`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              identityType: doc.identityType,
+              identityNumber: doc.identityNumber,
+              documentName: doc.fileName,
+              documentData: doc.fileData
+            })
+          });
+
+          const identityData = await identityRes.json();
+          console.log('Identity save response:', identityRes.status, identityData);
+
+          if (!identityRes.ok) {
+            console.error('Failed to save identity document:', identityData.error);
+            showToast('Warning: Failed to save identity document - ' + identityData.error, 'error');
+          }
+        } catch (docErr) {
+          console.error('Error saving identity document:', docErr);
+          showToast('Error saving identity document: ' + docErr.message, 'error');
+        }
+      }
+    }
+
+    // Save position changes if any
+    if (tempPositionChanges.length > 0) {
+      console.log('Saving position changes:', tempPositionChanges);
+      for (const change of tempPositionChanges) {
+        try {
+          console.log('Sending position change:', { position: change.position, department: change.department, ctc: change.ctc, effectiveDate: change.effectiveDate });
+          const changeRes = await fetch(`${API_URL}/api/employees/${employeeId}/position-history`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              position: change.position,
+              department: change.department,
+              ctc: change.ctc,
+              effectiveDate: change.effectiveDate
+            })
+          });
+
+          const changeData = await changeRes.json();
+          console.log('Position history save response:', changeRes.status, changeData);
+
+          if (!changeRes.ok) {
+            console.error('Failed to save position change:', changeData.error);
+            showToast('Warning: Failed to save position change - ' + changeData.error, 'error');
+          }
+        } catch (changeErr) {
+          console.error('Error saving position change:', changeErr);
+          showToast('Error saving position change: ' + changeErr.message, 'error');
+        }
+      }
+    }
+
     showToast('Employee saved successfully!', 'success');
-    document.getElementById('employeeForm').reset();
-    document.getElementById('employeeId').value = '';
-    document.getElementById('validationSummary').classList.remove('show');
-    tempPositionChanges = [];
-    positionHistory = [];
-    displayPositionChanges();
-    loadEmployees();
+
+    // Reload employees and re-populate form with saved data
+    await loadEmployees();
+
+    // Re-load the employee to show all saved data
+    setTimeout(() => {
+      editEmployee(employeeId);
+    }, 500);
   } catch (err) {
     console.error('Save error:', err);
     showToast('Error: ' + err.message, 'error');
@@ -396,6 +534,148 @@ function removePositionChange(id) {
   showToast('Position change removed', 'success');
 }
 
+// Add Identity Document
+function addIdentityDocument() {
+  const identityType = document.getElementById('identityType').value;
+  const identityNumber = document.getElementById('identityNumber').value.trim();
+  const fileInput = document.getElementById('identityDocument');
+  const file = fileInput.files[0];
+
+  if (!identityType) {
+    showToast('Please select an identity type', 'error');
+    return;
+  }
+
+  if (file) {
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File size should not exceed 5MB', 'error');
+      return;
+    }
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      tempIdentityDocuments.push({
+        id: Date.now(),
+        identityType,
+        identityNumber,
+        fileName: file.name,
+        fileData: e.target.result,
+        fileSize: file.size
+      });
+
+      // Clear form
+      document.getElementById('identityType').value = '';
+      document.getElementById('identityNumber').value = '';
+      document.getElementById('identityDocument').value = '';
+
+      displayIdentityDocuments();
+      showToast('Identity document added!', 'success');
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // Allow without file, just store the number
+    tempIdentityDocuments.push({
+      id: Date.now(),
+      identityType,
+      identityNumber,
+      fileName: null,
+      fileData: null,
+      fileSize: 0
+    });
+
+    // Clear form
+    document.getElementById('identityType').value = '';
+    document.getElementById('identityNumber').value = '';
+
+    displayIdentityDocuments();
+    showToast('Identity information added!', 'success');
+  }
+}
+
+// Display Identity Documents
+function displayIdentityDocuments() {
+  const allDocuments = [...tempIdentityDocuments];
+
+  if (allDocuments.length === 0) {
+    document.getElementById('identityListContainer').innerHTML = '<p style="text-align: center; color: var(--muted); padding: 20px;">No identity documents added yet.</p>';
+    return;
+  }
+
+  const identityTypeLabels = {
+    'aadhaar': 'Aadhaar Card',
+    'pan': 'PAN Card',
+    'driving-license': 'Driving License',
+    'passport': 'Passport',
+    'voter-id': 'Voter ID',
+    'other': 'Other'
+  };
+
+  const html = `
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: rgba(255,165,0,0.1);">
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Identity Type</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">ID Number</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Document</th>
+            <th style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allDocuments.map((doc, idx) => `
+            <tr style="border-bottom: 1px solid var(--border); background: ${idx % 2 === 0 ? 'transparent' : 'rgba(255,165,0,0.05)'};">
+              <td style="padding: 10px; font-size: 0.9rem;">${identityTypeLabels[doc.identityType]}</td>
+              <td style="padding: 10px; font-size: 0.9rem;">${doc.identityNumber || 'N/A'}</td>
+              <td style="padding: 10px; font-size: 0.9rem;">
+                ${doc.fileName ? `<i class="fas fa-file"></i> ${doc.fileName}` : '<span style="color: var(--muted);">No file</span>'}
+              </td>
+              <td style="padding: 10px; text-align: center;">
+                ${doc.isSaved ? '<span style="color: var(--muted); font-size: 0.8rem;">Saved</span>' : `
+                  <button type="button" class="icon-btn" onclick="removeIdentityDocument(${doc.id})" title="Remove" style="color: var(--red);">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                `}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('identityListContainer').innerHTML = html;
+}
+
+// Remove Identity Document
+async function removeIdentityDocument(id) {
+  const doc = tempIdentityDocuments.find(d => d.id === id);
+  if (!doc) return;
+
+  // If document is saved, delete from backend
+  if (doc.isSaved) {
+    const empId = document.getElementById('employeeId').value;
+    try {
+      const res = await fetch(`${API_URL}/api/employees/${empId}/identity/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (!res.ok) {
+        throw new Error((await res.json()).error || 'Failed to delete');
+      }
+    } catch (err) {
+      console.error('Error deleting identity document:', err);
+      showToast('Error: ' + err.message, 'error');
+      return;
+    }
+  }
+
+  tempIdentityDocuments = tempIdentityDocuments.filter(d => d.id !== id);
+  displayIdentityDocuments();
+  showToast('Identity document removed', 'success');
+}
+
 // Edit employee
 function editEmployee(empId) {
   const emp = employees.find(e => e._id === empId);
@@ -408,31 +688,95 @@ function editEmployee(empId) {
   document.getElementById('email').value = emp.email;
   document.getElementById('mobile').value = emp.mobile;
   document.getElementById('gender').value = emp.gender;
-  document.getElementById('dob').value = emp.dob || '';
+  document.getElementById('dob').value = formatDateForInput(emp.dob);
   document.getElementById('permanentAddress').value = emp.permanentAddress || '';
   document.getElementById('communicationAddress').value = emp.communicationAddress || '';
   document.getElementById('skills').value = emp.skills || '';
 
   // Employment Information
   document.getElementById('employeeCode').value = emp.employeeCode || '';
-  document.getElementById('position').value = emp.position || '';
-  document.getElementById('department').value = emp.department || '';
   document.getElementById('reportingManager').value = emp.reportingManager || '';
   document.getElementById('employmentType').value = emp.employmentType || 'full-time';
-  document.getElementById('dateOfJoining').value = emp.dateOfJoining || '';
+  document.getElementById('dateOfJoining').value = formatDateForInput(emp.dateOfJoining);
   document.getElementById('workLocation').value = emp.workLocation || '';
   document.getElementById('officialEmail').value = emp.officialEmail || '';
-  document.getElementById('ctc').value = emp.ctc || '';
   document.getElementById('probationPeriod').value = emp.probationPeriod || '';
-  document.getElementById('effectiveDate').value = ''; // Clear for new position changes
 
-  // Load and display position history
+  // Load and display position history and identity documents
   positionHistory = emp.positionHistory || [];
   tempPositionChanges = []; // Clear any unsaved changes
+
+  // Clear position change input fields
+  document.getElementById('positionChangeDesignation').value = '';
+  document.getElementById('positionChangeDepartment').value = '';
+  document.getElementById('positionChangeCTC').value = '';
+  document.getElementById('positionChangeEffectiveDate').value = '';
+
+  // Clear identity document input fields
+  document.getElementById('identityType').value = '';
+  document.getElementById('identityNumber').value = '';
+  document.getElementById('identityDocument').value = '';
+
+  // Load saved identity documents
+  const savedIdentityDocs = emp.identityDocuments || [];
+  tempIdentityDocuments = savedIdentityDocs.map(doc => ({
+    id: doc._id,
+    identityType: doc.identityType,
+    identityNumber: doc.identityNumber,
+    fileName: doc.documentName,
+    fileData: doc.documentPath,
+    isSaved: true
+  }));
+
   displayPositionChanges();
+  displayIdentityDocuments();
 
   document.querySelector('.section-title').scrollIntoView({ behavior: 'smooth' });
   document.getElementById('firstName').focus();
+}
+
+// Permanently Delete Employee
+async function permanentlyDeleteEmployee(empId, firstName, lastName) {
+  const confirmDelete = confirm(
+    `⚠️ WARNING: You are about to permanently delete ${firstName} ${lastName}.\n\n` +
+    `This action CANNOT be undone. All employee data, documents, and position history will be removed.\n\n` +
+    `Are you sure you want to continue?`
+  );
+
+  if (!confirmDelete) {
+    showToast('Delete cancelled', 'info');
+    return;
+  }
+
+  // Double confirmation for safety
+  const doubleConfirm = confirm(
+    `This is your final warning.\n\n` +
+    `Delete "${firstName} ${lastName}" permanently? Type "YES" to confirm.`
+  );
+
+  if (!doubleConfirm) {
+    showToast('Delete cancelled', 'info');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/employees/${empId}?permanent=true`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Delete failed');
+    }
+
+    showToast('Employee permanently deleted!', 'success');
+    loadEmployees();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+    console.error('Delete error:', err);
+  }
 }
 
 // Open relieving modal
