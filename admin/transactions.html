@@ -169,6 +169,7 @@
         <option value="completed">Completed</option>
         <option value="cancelled">Cancelled</option>
       </select>
+      <button id="toggleInactiveBtn" class="btn btn-secondary" type="button" style="margin-left: auto;"><i class="fas fa-eye-slash"></i> Show Inactive</button>
     </div>
 
     <div class="transactions-list" id="transactionsList">
@@ -233,6 +234,26 @@
         </div>
 
         <button type="submit" class="btn" style="width: 100%;"><i class="fas fa-save"></i> Save Transaction</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Inactive Modal -->
+  <div class="form-modal" id="inactiveModal">
+    <div class="form-content">
+      <div class="form-header">
+        <h2><i class="fas fa-times-circle"></i> Mark Transaction as Inactive</h2>
+        <button class="close-btn" type="button">&times;</button>
+      </div>
+      <form id="inactiveForm">
+        <div class="form-group">
+          <label>Comments / Reason</label>
+          <textarea id="inactiveComments" placeholder="e.g., Duplicate entry, Data correction, Cancelled, etc." rows="4"></textarea>
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%; background: var(--red);">
+          <i class="fas fa-check"></i> Mark as Inactive
+        </button>
       </form>
     </div>
   </div>

@@ -3,6 +3,8 @@ console.log('=== TRANSACTIONS.JS STARTING ===');
 const API_URL = window.location.origin;
 let allTransactions = [];
 let editingId = null;
+let inactivatingId = null;
+let showInactiveTransactions = false;
 
 // Get current month start and current date (timezone-safe)
 const today = new Date();
@@ -181,7 +183,8 @@ function submitForm(e) {
 function loadTransactions() {
   console.log('📥 Loading all transactions');
 
-  fetch(`${API_URL}/api/transactions`, {
+  const queryParam = showInactiveTransactions ? '?showInactive=true' : '';
+  fetch(`${API_URL}/api/transactions${queryParam}`, {
     headers: getAuthHeaders()
   })
   .then(r => r.json())
@@ -264,12 +267,16 @@ function renderTransactions(transactions) {
   };
 
   list.innerHTML = transactions.map(t => `
-    <div class="transaction-item">
-      <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
+    <div class="transaction-item" style="${!t.isActive ? 'opacity: 0.6; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);' : ''}">
+      <div class="drag-handle" style="${!t.isActive ? 'opacity: 0.3; cursor: not-allowed;' : ''}"><i class="fas fa-grip-vertical"></i></div>
       <div class="transaction-info">
-        <div class="transaction-desc">${t.description}</div>
+        <div class="transaction-desc">
+          ${t.description}
+          ${!t.isActive ? '<span style="color: var(--red); font-size: 0.8rem; margin-left: 10px;"><i class="fas fa-ban"></i> Inactive</span>' : ''}
+        </div>
         <div class="transaction-meta">
           ${t.category || ''} • ${new Date(t.date).toLocaleDateString()}
+          ${!t.isActive ? '<br><i class="fas fa-times-circle"></i> Inactive: ' + new Date(t.inactiveDate).toLocaleDateString() : ''}
         </div>
       </div>
       <div style="display: flex; gap: 15px; align-items: center;">
@@ -279,11 +286,11 @@ function renderTransactions(transactions) {
         </div>
       </div>
       <div class="transaction-actions">
-        <button class="icon-btn edit-btn" type="button" data-id="${t._id}">
+        <button class="icon-btn edit-btn" type="button" data-id="${t._id}" style="${!t.isActive ? 'opacity: 0.3; cursor: not-allowed;' : ''}">
           <i class="fas fa-edit"></i>
         </button>
-        <button class="icon-btn delete-btn" type="button" data-id="${t._id}">
-          <i class="fas fa-trash"></i>
+        <button class="icon-btn delete-btn" type="button" data-id="${t._id}" title="${t.isActive ? 'Mark as Inactive' : 'View'}">
+          <i class="fas fa-${t.isActive ? 'trash' : 'eye'}"></i>
         </button>
       </div>
     </div>
@@ -293,16 +300,22 @@ function renderTransactions(transactions) {
   document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      console.log('✏️ Edit clicked for:', id);
-      editTransaction(id);
+      const trans = allTransactions.find(x => x._id === id);
+      if (trans && trans.isActive) {
+        console.log('✏️ Edit clicked for:', id);
+        editTransaction(id);
+      }
     });
   });
 
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      console.log('🗑️ Delete clicked for:', id);
-      deleteTransaction(id);
+      const trans = allTransactions.find(x => x._id === id);
+      if (trans && trans.isActive) {
+        console.log('🗑️ Inactivate clicked for:', id);
+        openInactiveModal(id);
+      }
     });
   });
 }
@@ -325,25 +338,41 @@ function editTransaction(id) {
   document.getElementById('formModal').classList.add('open');
 }
 
-function deleteTransaction(id) {
-  console.log('Deleting:', id);
-  if (!confirm('Delete this transaction?')) return;
+function openInactiveModal(id) {
+  console.log('Opening inactive modal for:', id);
+  inactivatingId = id;
+  document.getElementById('inactiveComments').value = '';
+  document.getElementById('inactiveModal').classList.add('open');
+}
 
-  fetch(`${API_URL}/api/transactions/${id}`, {
+function closeInactiveModal() {
+  document.getElementById('inactiveModal').classList.remove('open');
+  inactivatingId = null;
+}
+
+function submitInactiveForm(e) {
+  e.preventDefault();
+  const comments = document.getElementById('inactiveComments').value;
+
+  console.log('Marking as inactive:', inactivatingId, 'Comments:', comments);
+
+  fetch(`${API_URL}/api/transactions/${inactivatingId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ inactiveComments: comments })
   })
   .then(r => r.json())
   .then(data => {
     if (data.success) {
-      alert('✅ Deleted successfully!');
+      alert('✅ Transaction marked as inactive!');
+      closeInactiveModal();
       loadTransactions();
     } else {
       alert('❌ ' + (data.message || 'Error'));
     }
   })
   .catch(err => {
-    console.error('Delete error:', err);
+    console.error('Error:', err);
     alert('❌ Error: ' + err.message);
   });
 }
@@ -559,6 +588,36 @@ document.addEventListener('DOMContentLoaded', () => {
       applyFilters();
     });
     console.log('✅ Status filter listener attached');
+  }
+
+  // Attach inactive modal listeners
+  const inactiveModal = document.getElementById('inactiveModal');
+  if (inactiveModal) {
+    const closeBtn = inactiveModal.querySelector('.close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeInactiveModal);
+    }
+    inactiveModal.addEventListener('click', (e) => {
+      if (e.target.id === 'inactiveModal') closeInactiveModal();
+    });
+
+    const inactiveForm = document.getElementById('inactiveForm');
+    if (inactiveForm) {
+      inactiveForm.addEventListener('submit', submitInactiveForm);
+      console.log('✅ Inactive form listener attached');
+    }
+  }
+
+  // Toggle inactive transactions button
+  const toggleInactiveBtn = document.getElementById('toggleInactiveBtn');
+  if (toggleInactiveBtn) {
+    toggleInactiveBtn.addEventListener('click', () => {
+      showInactiveTransactions = !showInactiveTransactions;
+      toggleInactiveBtn.innerHTML = showInactiveTransactions
+        ? '<i class="fas fa-eye"></i> Show Active'
+        : '<i class="fas fa-eye-slash"></i> Show Inactive';
+      loadTransactions();
+    });
   }
 
   checkAuth();

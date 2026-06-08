@@ -56,8 +56,13 @@ router.post('/', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { type, status, category } = req.query;
+    const { type, status, category, showInactive } = req.query;
     const query = {};
+
+    // By default, only show active transactions
+    if (showInactive !== 'true') {
+      query.isActive = true;
+    }
 
     if (type && ['credit', 'debit'].includes(type)) {
       query.type = type;
@@ -158,7 +163,8 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const transaction = await Transaction.findByIdAndDelete(req.params.id);
+    const { inactiveComments } = req.body;
+    const transaction = await Transaction.findById(req.params.id);
 
     if (!transaction) {
       return res.status(404).json({
@@ -167,17 +173,24 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    logger.info('Transaction deleted', { transactionId: transaction._id });
+    // Mark as inactive instead of deleting
+    transaction.isActive = false;
+    transaction.inactiveDate = new Date();
+    transaction.inactiveComments = inactiveComments || '';
+    await transaction.save();
+
+    logger.info('Transaction marked as inactive', { transactionId: transaction._id, comments: inactiveComments });
 
     res.json({
       success: true,
-      message: 'Transaction deleted successfully'
+      message: 'Transaction marked as inactive successfully',
+      data: transaction
     });
   } catch (error) {
-    logger.error('Error deleting transaction', { error: error.message });
+    logger.error('Error marking transaction as inactive', { error: error.message });
     res.status(500).json({
       success: false,
-      message: 'Error deleting transaction'
+      message: 'Error marking transaction as inactive'
     });
   }
 });

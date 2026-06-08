@@ -49,8 +49,28 @@
       border-color: var(--accent); background: rgba(0,180,216,0.05);
       box-shadow: 0 0 0 3px rgba(0,180,216,0.1);
     }
+    .form-group.error input, .form-group.error select, .form-group.error textarea {
+      border-color: var(--red); background: rgba(239,68,68,0.05);
+    }
+    .form-group.error label {
+      color: var(--red);
+    }
+    .error-message {
+      color: var(--red); font-size: 0.75rem; margin-top: 4px; display: none;
+    }
+    .form-group.error .error-message {
+      display: block;
+    }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .form-row3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-validation-summary {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      color: var(--red); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+      display: none; font-size: 0.9rem;
+    }
+    .form-validation-summary.show {
+      display: block;
+    }
 
     /* Employee list */
     .employee-item { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 15px;
@@ -128,85 +148,184 @@
         <form id="employeeForm">
           <input type="hidden" id="employeeId">
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>First Name *</label>
-              <input type="text" id="firstName" placeholder="John" required>
+          <!-- Validation Summary -->
+          <div class="form-validation-summary" id="validationSummary">
+            <i class="fas fa-exclamation-circle"></i> <span id="validationMessage"></span>
+          </div>
+
+          <!-- SECTION 1: PERSONAL INFORMATION -->
+          <div style="background: rgba(0,180,216,0.08); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--accent);">
+            <h3 style="font-size: 1rem; margin: 0 0 15px 0; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-user-circle"></i> Section 1: Personal Information
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name *</label>
+                <input type="text" id="firstName" placeholder="John" required>
+                <div class="error-message">First Name is required</div>
+              </div>
+              <div class="form-group">
+                <label>Last Name *</label>
+                <input type="text" id="lastName" placeholder="Doe" required>
+                <div class="error-message">Last Name is required</div>
+              </div>
             </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email Address *</label>
+                <input type="email" id="email" placeholder="john@example.com" required>
+                <div class="error-message">Email Address is required</div>
+              </div>
+              <div class="form-group">
+                <label>Mobile Number *</label>
+                <input type="tel" id="mobile" placeholder="+91 98765 43210" required>
+                <div class="error-message">Mobile Number is required</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Gender *</label>
+                <select id="gender" required>
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+                <div class="error-message">Gender is required</div>
+              </div>
+              <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="date" id="dob">
+              </div>
+            </div>
+
             <div class="form-group">
-              <label>Last Name *</label>
-              <input type="text" id="lastName" placeholder="Doe" required>
+              <label>Permanent Address</label>
+              <textarea id="permanentAddress" placeholder="Street, City, State, PIN" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Communication Address</label>
+              <textarea id="communicationAddress" placeholder="Street, City, State, PIN" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Skills</label>
+              <textarea id="skills" placeholder="JavaScript, React, Node.js, etc." rows="2"></textarea>
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Email *</label>
-              <input type="email" id="email" placeholder="john@example.com" required>
+          <!-- SECTION 2: EMPLOYMENT INFORMATION -->
+          <div style="background: rgba(124,58,237,0.08); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--purple);">
+            <h3 style="font-size: 1rem; margin: 0 0 15px 0; color: var(--purple); display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-briefcase"></i> Section 2: Employment Information
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employee ID</label>
+                <input type="text" id="employeeCode" placeholder="EMP-001">
+              </div>
+              <div class="form-group">
+                <label>Reporting Manager</label>
+                <input type="text" id="reportingManager" placeholder="Manager Name">
+              </div>
             </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Employment Type</label>
+                <select id="employmentType">
+                  <option value="full-time">Full-Time</option>
+                  <option value="contract">Contract</option>
+                  <option value="intern">Intern</option>
+                  <option value="trainee">Trainee</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Date of Joining</label>
+                <input type="date" id="dateOfJoining">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Work Location</label>
+                <input type="text" id="workLocation" placeholder="Office Location">
+              </div>
+              <div class="form-group">
+                <label>Official Email</label>
+                <input type="email" id="officialEmail" placeholder="john.doe@mochanabs.com">
+              </div>
+            </div>
+
             <div class="form-group">
-              <label>Mobile *</label>
-              <input type="tel" id="mobile" placeholder="+91 98765 43210" required>
+              <label>Probation Period</label>
+              <input type="text" id="probationPeriod" placeholder="e.g., 3 months, 6 months">
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Gender *</label>
-              <select id="gender" required>
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
+          <!-- SECTION 3: POSITION CHANGE -->
+          <div style="background: rgba(34,197,94,0.08); padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid var(--green);">
+            <h3 style="font-size: 1rem; margin: 0 0 15px 0; color: var(--green); display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-history"></i> Section 3: Position Change History
+            </h3>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Designation</label>
+                <input type="text" id="positionChangeDesignation" placeholder="e.g., Senior Engineer">
+              </div>
+              <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="positionChangeDepartment" placeholder="e.g., Engineering">
+              </div>
             </div>
-            <div class="form-group">
-              <label>Date of Birth</label>
-              <input type="date" id="dob">
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>CTC / Salary (₹)</label>
+                <input type="number" id="positionChangeCTC" placeholder="50000" step="1000">
+              </div>
+              <div class="form-group">
+                <label>Effective Date</label>
+                <input type="date" id="positionChangeEffectiveDate">
+              </div>
+            </div>
+
+            <button type="button" id="addPositionChangeBtn" class="btn" style="width: 100%; background: var(--green); margin-bottom: 15px;">
+              <i class="fas fa-plus"></i> Add Position Change
+            </button>
+
+            <div id="positionHistoryContainer" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 15px;">
+              <p style="text-align: center; color: var(--muted); padding: 20px;">No position changes yet. Add a position change record above.</p>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Address *</label>
-            <textarea id="address" placeholder="Street, City, State, PIN" rows="3" required></textarea>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Position/Designation</label>
-              <input type="text" id="position" placeholder="Software Engineer">
-            </div>
-            <div class="form-group">
-              <label>Department</label>
-              <input type="text" id="department" placeholder="Engineering">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Date of Joining</label>
-              <input type="date" id="dateOfJoining">
-            </div>
-            <div class="form-group">
-              <label>Employee ID</label>
-              <input type="text" id="employeeCode" placeholder="EMP-001">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Skills</label>
-            <textarea id="skills" placeholder="JavaScript, React, Node.js, etc." rows="2"></textarea>
-          </div>
-
-          <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">
+          <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">
             <i class="fas fa-save"></i> Save Employee
           </button>
         </form>
+
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <div class="section-title"><i class="fas fa-history"></i> Position History</div>
+          <div id="positionHistoryContainer" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 15px;">
+            <p style="text-align: center; color: var(--muted); padding: 20px;">No position history yet. Save employee to create initial record.</p>
+          </div>
+        </div>
       </div>
 
       <!-- Employee List -->
       <div class="section">
-        <div class="section-title"><i class="fas fa-list"></i> Employees List</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+          <div class="section-title" style="margin-bottom: 0;"><i class="fas fa-list"></i> Employees List</div>
+          <button id="toggleInactiveBtn" type="button" class="btn" style="background: var(--purple); padding: 8px 16px; font-size: 0.85rem;">
+            <i class="fas fa-eye-slash"></i> Show Inactive
+          </button>
+        </div>
         <div id="employeesList" style="max-height: 800px; overflow-y: auto;">
           <p style="text-align: center; color: var(--muted); padding: 40px 20px;">
             <i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
@@ -246,6 +365,32 @@
           <div class="letter-option-desc">Certificate of salary and employment</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Relieving Modal -->
+  <div class="modal" id="relievingModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="fas fa-door-open"></i> Relieve Employee</h2>
+        <button class="close-btn" type="button">&times;</button>
+      </div>
+
+      <form id="relievingForm">
+        <div class="form-group">
+          <label>Date of Relieving *</label>
+          <input type="date" id="relievingDate" required>
+        </div>
+
+        <div class="form-group">
+          <label>Comments / Reason</label>
+          <textarea id="relievingComments" placeholder="e.g., Resignation, Termination, Retirement, etc." rows="4"></textarea>
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%; background: var(--red); margin-top: 10px;">
+          <i class="fas fa-check"></i> Mark as Inactive
+        </button>
+      </form>
     </div>
   </div>
 

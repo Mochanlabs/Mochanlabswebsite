@@ -7,18 +7,33 @@ const letterSchema = new mongoose.Schema({
 });
 
 const employeeSchema = new mongoose.Schema({
+  // Personal Information
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   mobile: { type: String, required: true },
   gender: { type: String, enum: ['male', 'female', 'other'], required: true },
   dob: Date,
-  address: { type: String, required: true },
+  permanentAddress: String,
+  communicationAddress: String,
+  skills: String,
+
+  // Employment Information
+  employeeCode: { type: String, unique: true, sparse: true },
   position: String,
   department: String,
+  reportingManager: String,
+  employmentType: { type: String, enum: ['full-time', 'contract', 'intern', 'trainee'], default: 'full-time' },
   dateOfJoining: Date,
-  employeeCode: { type: String, unique: true, sparse: true },
-  skills: String,
+  workLocation: String,
+  officialEmail: String,
+  ctc: Number,
+  probationPeriod: String,
+
+  // Status
+  isActive: { type: Boolean, default: true },
+  dateOfRelieving: Date,
+  relievingComments: String,
   generatedLetters: [letterSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

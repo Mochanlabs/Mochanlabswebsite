@@ -10,7 +10,10 @@ const transactionSchema = new mongoose.Schema({
   invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice', default: null },
   lineItemIndex: { type: Number, default: null },
   status: { type: String, enum: ['pending', 'completed', 'cancelled'], default: 'pending' },
-  notes: { type: String, default: '' }
+  notes: { type: String, default: '' },
+  isActive: { type: Boolean, default: true },
+  inactiveDate: Date,
+  inactiveComments: String
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

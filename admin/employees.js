@@ -4,9 +4,18 @@ const API_URL = window.location.origin;
 let employees = [];
 let selectedEmployeeId = null;
 let selectedLetterType = null;
+let positionHistory = [];
+let tempPositionChanges = []; // For new position changes being added
+let showInactiveEmployees = false;
 
 function getAuthHeaders() {
   const token = sessionStorage.getItem('ml_admin_token');
+  console.log('Using token:', token ? 'Present (' + token.substring(0, 20) + '...)' : 'Missing');
+
+  if (!token) {
+    console.error('❌ NO TOKEN FOUND! User may not be logged in.');
+  }
+
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
@@ -26,8 +35,32 @@ function attachEventListeners() {
   // Form submission
   document.getElementById('employeeForm').addEventListener('submit', saveEmployee);
 
-  // Modal close button
-  document.querySelector('.close-btn').addEventListener('click', closeLetterModal);
+  // Clear error state when user starts typing
+  const requiredFields = ['firstName', 'lastName', 'email', 'mobile', 'gender'];
+  requiredFields.forEach(fieldId => {
+    const element = document.getElementById(fieldId);
+    if (element) {
+      element.addEventListener('input', () => {
+        element.closest('.form-group').classList.remove('error');
+      });
+      element.addEventListener('change', () => {
+        element.closest('.form-group').classList.remove('error');
+      });
+    }
+  });
+
+  // Add Position Change button
+  const addPositionChangeBtn = document.getElementById('addPositionChangeBtn');
+  if (addPositionChangeBtn) {
+    addPositionChangeBtn.addEventListener('click', addPositionChange);
+    console.log('✅ Add Position Change button listener attached');
+  }
+
+  // Letter modal close buttons
+  const letterCloseBtn = document.querySelector('#letterModal .close-btn');
+  if (letterCloseBtn) {
+    letterCloseBtn.addEventListener('click', closeLetterModal);
+  }
 
   // Letter options
   document.querySelectorAll('.letter-option').forEach(option => {
@@ -37,10 +70,36 @@ function attachEventListeners() {
     });
   });
 
-  // Click outside modal to close
+  // Click outside letter modal to close
   document.getElementById('letterModal').addEventListener('click', (e) => {
     if (e.target.id === 'letterModal') closeLetterModal();
   });
+
+  // Relieving modal close button
+  const relievingCloseBtn = document.querySelector('#relievingModal .close-btn');
+  if (relievingCloseBtn) {
+    relievingCloseBtn.addEventListener('click', closeRelievingModal);
+  }
+
+  // Relieving form submission
+  document.getElementById('relievingForm').addEventListener('submit', submitRelievingForm);
+
+  // Click outside relieving modal to close
+  document.getElementById('relievingModal').addEventListener('click', (e) => {
+    if (e.target.id === 'relievingModal') closeRelievingModal();
+  });
+
+  // Toggle inactive employees button
+  const toggleBtn = document.getElementById('toggleInactiveBtn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      showInactiveEmployees = !showInactiveEmployees;
+      toggleBtn.innerHTML = showInactiveEmployees
+        ? '<i class="fas fa-eye"></i> Show Active'
+        : '<i class="fas fa-eye-slash"></i> Show Inactive';
+      renderEmployeesList();
+    });
+  }
 }
 
 // Load employees
@@ -64,19 +123,28 @@ function loadEmployees() {
 function renderEmployeesList() {
   const list = document.getElementById('employeesList');
 
-  if (employees.length === 0) {
-    list.innerHTML = '<p style="text-align: center; color: var(--muted); padding: 40px 20px;"><i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i> No employees yet</p>';
+  const filteredEmployees = showInactiveEmployees
+    ? employees.filter(e => !e.isActive)
+    : employees.filter(e => e.isActive);
+
+  if (filteredEmployees.length === 0) {
+    const msg = showInactiveEmployees ? 'No inactive employees' : 'No active employees';
+    list.innerHTML = `<p style="text-align: center; color: var(--muted); padding: 40px 20px;"><i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i> ${msg}</p>`;
     return;
   }
 
-  list.innerHTML = employees.map(emp => `
-    <div class="employee-item">
+  list.innerHTML = filteredEmployees.map(emp => `
+    <div class="employee-item" style="${!emp.isActive ? 'opacity: 0.6; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3);' : ''}">
       <div class="employee-info">
-        <div class="employee-name">${emp.firstName} ${emp.lastName}</div>
+        <div class="employee-name">
+          ${emp.firstName} ${emp.lastName}
+          ${!emp.isActive ? '<span style="color: var(--red); font-size: 0.8rem; margin-left: 10px;"><i class="fas fa-ban"></i> Inactive</span>' : ''}
+        </div>
         <div class="employee-meta">
           <i class="fas fa-briefcase"></i> ${emp.position || 'N/A'} |
           <i class="fas fa-envelope"></i> ${emp.email} |
           <i class="fas fa-phone"></i> ${emp.mobile}
+          ${emp.isActive ? '' : `<br><i class="fas fa-calendar"></i> Relieved: ${new Date(emp.dateOfRelieving).toLocaleDateString('en-IN')}`}
         </div>
       </div>
       <div class="employee-actions">
@@ -86,8 +154,8 @@ function renderEmployeesList() {
         <button class="icon-btn" title="Edit" data-employee-id="${emp._id}">
           <i class="fas fa-edit"></i>
         </button>
-        <button class="icon-btn" title="Delete" data-employee-id="${emp._id}">
-          <i class="fas fa-trash"></i>
+        <button class="icon-btn" title="${emp.isActive ? 'Mark as Inactive' : 'View'}" data-employee-id="${emp._id}" style="${!emp.isActive ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+          <i class="fas fa-${emp.isActive ? 'door-open' : 'eye'}"></i>
         </button>
       </div>
     </div>
@@ -98,33 +166,100 @@ function renderEmployeesList() {
     const empId = btn.dataset.employeeId;
     if (idx % 3 === 0) btn.addEventListener('click', () => openLetterModal(empId));
     else if (idx % 3 === 1) btn.addEventListener('click', () => editEmployee(empId));
-    else btn.addEventListener('click', () => deleteEmployee(empId));
+    else btn.addEventListener('click', () => {
+      const emp = employees.find(e => e._id === empId);
+      if (emp.isActive) openRelievingModal(empId);
+    });
   });
+}
+
+// Validate employee form
+function validateEmployeeForm() {
+  // Clear all previous errors
+  document.querySelectorAll('.form-group.error').forEach(el => el.classList.remove('error'));
+  document.getElementById('validationSummary').classList.remove('show');
+
+  // Required fields mapping
+  const requiredFields = [
+    { id: 'firstName', name: 'First Name' },
+    { id: 'lastName', name: 'Last Name' },
+    { id: 'email', name: 'Email Address' },
+    { id: 'mobile', name: 'Mobile Number' },
+    { id: 'gender', name: 'Gender' }
+  ];
+
+  const missingFields = [];
+
+  requiredFields.forEach(field => {
+    const element = document.getElementById(field.id);
+    const value = element.value.trim();
+
+    if (!value) {
+      missingFields.push(field.name);
+      element.closest('.form-group').classList.add('error');
+    }
+  });
+
+  // Show validation summary if there are errors
+  if (missingFields.length > 0) {
+    const summary = document.getElementById('validationSummary');
+    const message = document.getElementById('validationMessage');
+    message.textContent = `Please fill in the following required fields: ${missingFields.join(', ')}`;
+    summary.classList.add('show');
+    summary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+
+  return true;
 }
 
 // Save employee
 async function saveEmployee(e) {
   e.preventDefault();
+
+  // Validate before saving
+  if (!validateEmployeeForm()) {
+    return;
+  }
+
   const empId = document.getElementById('employeeId').value;
 
   const data = {
+    // Personal Information
     firstName: document.getElementById('firstName').value,
     lastName: document.getElementById('lastName').value,
     email: document.getElementById('email').value,
     mobile: document.getElementById('mobile').value,
     gender: document.getElementById('gender').value,
     dob: document.getElementById('dob').value,
-    address: document.getElementById('address').value,
-    position: document.getElementById('position').value,
-    department: document.getElementById('department').value,
-    dateOfJoining: document.getElementById('dateOfJoining').value,
-    employeeCode: document.getElementById('employeeCode').value,
+    permanentAddress: document.getElementById('permanentAddress').value,
+    communicationAddress: document.getElementById('communicationAddress').value,
     skills: document.getElementById('skills').value,
+
+    // Employment Information
+    employeeCode: document.getElementById('employeeCode').value,
+    reportingManager: document.getElementById('reportingManager').value,
+    employmentType: document.getElementById('employmentType').value,
+    dateOfJoining: document.getElementById('dateOfJoining').value,
+    workLocation: document.getElementById('workLocation').value,
+    officialEmail: document.getElementById('officialEmail').value,
+    probationPeriod: document.getElementById('probationPeriod').value,
   };
+
+  // If there are temp position changes, use the first one as the initial position
+  if (tempPositionChanges.length > 0) {
+    const firstChange = tempPositionChanges[0];
+    data.position = firstChange.position;
+    data.ctc = firstChange.ctc;
+    data.department = firstChange.department;
+    data.effectiveDate = firstChange.effectiveDate;
+  }
 
   try {
     const method = empId ? 'PUT' : 'POST';
     const url = empId ? `${API_URL}/api/employees/${empId}` : `${API_URL}/api/employees`;
+
+    console.log('Sending employee data:', data);
 
     const res = await fetch(url, {
       method,
@@ -132,14 +267,133 @@ async function saveEmployee(e) {
       body: JSON.stringify(data)
     });
 
-    if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+    const responseData = await res.json();
+    console.log('Response:', responseData);
+
+    if (!res.ok) {
+      // Handle 401 Unauthorized
+      if (res.status === 401) {
+        console.error('❌ Authentication Failed! Redirecting to login...');
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Handle backend validation errors
+      if (responseData.missingFields) {
+        responseData.missingFields.forEach(fieldName => {
+          const fieldId = fieldName.toLowerCase().replace(/ /g, '');
+          const element = document.getElementById(fieldId);
+          if (element) {
+            element.closest('.form-group').classList.add('error');
+          }
+        });
+      }
+
+      // Highlight the field that has duplicate error
+      if (responseData.field) {
+        const fieldElement = document.getElementById(responseData.field);
+        if (fieldElement) {
+          fieldElement.closest('.form-group').classList.add('error');
+        }
+      }
+
+      throw new Error(responseData.error || `Save failed (Status: ${res.status})`);
+    }
+
     showToast('Employee saved successfully!', 'success');
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
+    document.getElementById('validationSummary').classList.remove('show');
+    tempPositionChanges = [];
+    positionHistory = [];
+    displayPositionChanges();
     loadEmployees();
   } catch (err) {
+    console.error('Save error:', err);
     showToast('Error: ' + err.message, 'error');
   }
+}
+
+// Add Position Change
+function addPositionChange() {
+  const designation = document.getElementById('positionChangeDesignation').value.trim();
+  const department = document.getElementById('positionChangeDepartment').value.trim();
+  const ctc = parseInt(document.getElementById('positionChangeCTC').value) || 0;
+  const effectiveDate = document.getElementById('positionChangeEffectiveDate').value;
+
+  if (!designation || !department || !ctc || !effectiveDate) {
+    showToast('Please fill all Position Change fields', 'error');
+    return;
+  }
+
+  tempPositionChanges.push({
+    id: Date.now(),
+    position: designation,
+    department,
+    ctc,
+    effectiveDate
+  });
+
+  // Clear form
+  document.getElementById('positionChangeDesignation').value = '';
+  document.getElementById('positionChangeDepartment').value = '';
+  document.getElementById('positionChangeCTC').value = '';
+  document.getElementById('positionChangeEffectiveDate').value = '';
+
+  displayPositionChanges();
+  showToast('Position change added!', 'success');
+}
+
+// Display Position Changes
+function displayPositionChanges() {
+  const allChanges = [...tempPositionChanges, ...positionHistory];
+
+  if (allChanges.length === 0) {
+    document.getElementById('positionHistoryContainer').innerHTML = '<p style="text-align: center; color: var(--muted); padding: 20px;">No position changes yet. Add a position change record above.</p>';
+    return;
+  }
+
+  const html = `
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: rgba(34,197,94,0.1);">
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Designation</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Department</th>
+            <th style="padding: 10px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.85rem;">CTC</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Effective Date</th>
+            <th style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allChanges.map((change, idx) => `
+            <tr style="border-bottom: 1px solid var(--border); background: ${idx % 2 === 0 ? 'transparent' : 'rgba(34,197,94,0.05)'};">
+              <td style="padding: 10px; font-size: 0.9rem;">${change.position}</td>
+              <td style="padding: 10px; font-size: 0.9rem;">${change.department}</td>
+              <td style="padding: 10px; text-align: right; font-size: 0.9rem; color: var(--green); font-weight: 600;">₹${change.ctc.toLocaleString('en-IN')}</td>
+              <td style="padding: 10px; font-size: 0.9rem;">${new Date(change.effectiveDate).toLocaleDateString('en-IN')}</td>
+              <td style="padding: 10px; text-align: center;">
+                ${tempPositionChanges.find(t => t.id === change.id) ? `
+                  <button type="button" class="icon-btn" onclick="removePositionChange(${change.id})" title="Remove" style="color: var(--red);">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                ` : '<span style="color: var(--muted); font-size: 0.8rem;">Saved</span>'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('positionHistoryContainer').innerHTML = html;
+}
+
+// Remove Position Change
+function removePositionChange(id) {
+  tempPositionChanges = tempPositionChanges.filter(t => t.id !== id);
+  displayPositionChanges();
+  showToast('Position change removed', 'success');
 }
 
 // Edit employee
@@ -147,6 +401,7 @@ function editEmployee(empId) {
   const emp = employees.find(e => e._id === empId);
   if (!emp) return;
 
+  // Personal Information
   document.getElementById('employeeId').value = emp._id;
   document.getElementById('firstName').value = emp.firstName;
   document.getElementById('lastName').value = emp.lastName;
@@ -154,29 +409,74 @@ function editEmployee(empId) {
   document.getElementById('mobile').value = emp.mobile;
   document.getElementById('gender').value = emp.gender;
   document.getElementById('dob').value = emp.dob || '';
-  document.getElementById('address').value = emp.address;
+  document.getElementById('permanentAddress').value = emp.permanentAddress || '';
+  document.getElementById('communicationAddress').value = emp.communicationAddress || '';
+  document.getElementById('skills').value = emp.skills || '';
+
+  // Employment Information
+  document.getElementById('employeeCode').value = emp.employeeCode || '';
   document.getElementById('position').value = emp.position || '';
   document.getElementById('department').value = emp.department || '';
+  document.getElementById('reportingManager').value = emp.reportingManager || '';
+  document.getElementById('employmentType').value = emp.employmentType || 'full-time';
   document.getElementById('dateOfJoining').value = emp.dateOfJoining || '';
-  document.getElementById('employeeCode').value = emp.employeeCode || '';
-  document.getElementById('skills').value = emp.skills || '';
+  document.getElementById('workLocation').value = emp.workLocation || '';
+  document.getElementById('officialEmail').value = emp.officialEmail || '';
+  document.getElementById('ctc').value = emp.ctc || '';
+  document.getElementById('probationPeriod').value = emp.probationPeriod || '';
+  document.getElementById('effectiveDate').value = ''; // Clear for new position changes
+
+  // Load and display position history
+  positionHistory = emp.positionHistory || [];
+  tempPositionChanges = []; // Clear any unsaved changes
+  displayPositionChanges();
 
   document.querySelector('.section-title').scrollIntoView({ behavior: 'smooth' });
   document.getElementById('firstName').focus();
 }
 
-// Delete employee
-async function deleteEmployee(empId) {
-  if (!confirm('Are you sure you want to delete this employee?')) return;
+// Open relieving modal
+function openRelievingModal(empId) {
+  selectedEmployeeId = empId;
+  const emp = employees.find(e => e._id === empId);
+  if (emp) {
+    document.getElementById('relievingDate').value = '';
+    document.getElementById('relievingComments').value = '';
+    document.getElementById('relievingModal').classList.add('open');
+  }
+}
+
+// Close relieving modal
+function closeRelievingModal() {
+  document.getElementById('relievingModal').classList.remove('open');
+  selectedEmployeeId = null;
+}
+
+// Submit relieving form
+async function submitRelievingForm(e) {
+  e.preventDefault();
+
+  const dateOfRelieving = document.getElementById('relievingDate').value;
+  const relievingComments = document.getElementById('relievingComments').value;
+
+  if (!dateOfRelieving) {
+    showToast('Please select date of relieving', 'error');
+    return;
+  }
 
   try {
-    const res = await fetch(`${API_URL}/api/employees/${empId}`, {
+    const res = await fetch(`${API_URL}/api/employees/${selectedEmployeeId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        dateOfRelieving,
+        relievingComments
+      })
     });
 
-    if (!res.ok) throw new Error('Delete failed');
-    showToast('Employee deleted', 'success');
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to relieve employee');
+    showToast('Employee marked as inactive', 'success');
+    closeRelievingModal();
     loadEmployees();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
@@ -458,6 +758,45 @@ function updateStats() {
   const experienceCount = employees.reduce((sum, emp) => sum + (emp.generatedLetters?.filter(l => l.letterType === 'experience').length || 0), 0);
   document.getElementById('offersGenerated').textContent = offersCount;
   document.getElementById('experienceGenerated').textContent = experienceCount;
+}
+
+// Display position history
+function displayPositionHistory() {
+  const historyContainer = document.getElementById('positionHistoryContainer');
+  if (!historyContainer) return;
+
+  if (!positionHistory || positionHistory.length === 0) {
+    historyContainer.innerHTML = '<p style="text-align: center; color: var(--muted); padding: 20px;">No position history yet</p>';
+    return;
+  }
+
+  const historyHtml = `
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: rgba(0,180,216,0.1);">
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Position</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Department</th>
+            <th style="padding: 10px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.85rem;">CTC</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">Effective Date</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem;">End Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${positionHistory.map((h, idx) => `
+            <tr style="border-bottom: 1px solid var(--border); background: ${idx % 2 === 0 ? 'transparent' : 'rgba(0,180,216,0.05)'};">
+              <td style="padding: 10px; font-size: 0.9rem;">${h.position}</td>
+              <td style="padding: 10px; font-size: 0.9rem;">${h.department}</td>
+              <td style="padding: 10px; text-align: right; font-size: 0.9rem; color: var(--green); font-weight: 600;">₹${h.ctc.toLocaleString('en-IN')}</td>
+              <td style="padding: 10px; font-size: 0.9rem;">${new Date(h.effectiveDate).toLocaleDateString('en-IN')}</td>
+              <td style="padding: 10px; font-size: 0.9rem; color: var(--muted);">${h.endDate ? new Date(h.endDate).toLocaleDateString('en-IN') : 'Current'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  historyContainer.innerHTML = historyHtml;
 }
 
 // Toast notification
