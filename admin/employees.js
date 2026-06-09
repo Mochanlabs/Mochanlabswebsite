@@ -998,7 +998,7 @@ async function generateLetter() {
 
     // Light blue header background (RGB: 0, 180, 216 - the accent color)
     doc.setFillColor(0, 180, 216);
-    doc.rect(0, 0, 210, 35, 'F');
+    doc.rect(0, 0, 210, 30, 'F');
 
     // Add logo to header if available
     if (logoBase64) {
@@ -1049,16 +1049,16 @@ async function generateLetter() {
 
   // Letter title
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setTextColor(0, 180, 216);
-  doc.text(letterTitle, 105, 65, { align: 'center' });
+  doc.text(letterTitle, 105, 60, { align: 'center' });
 
   // Letter body
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(30, 41, 59);
 
-  let yPos = 80;
+  let yPos = 72;
 
   // Special rendering for offer letter with bold details
   if (selectedLetterType === 'offer') {
@@ -1087,13 +1087,15 @@ async function generateLetter() {
           if (valueLines.length > 0) {
             doc.text(valueLines[0], 20 + labelWidth, yPos);
             // Render additional lines below if text wraps
-            let valueYPos = yPos + 6;
+            let valueYPos = yPos + 3;
             for (let i = 1; i < valueLines.length; i++) {
               doc.text(valueLines[i], 20, valueYPos);
-              valueYPos += 6;
+              valueYPos += 3;
             }
-            yPos = valueYPos - 6; // Update yPos to account for wrapped lines
+            yPos = valueYPos - 3; // Update yPos to account for wrapped lines
           }
+          // Add spacing to match bullet point spacing
+          yPos += 3;
         } else {
           // For "Terms & Conditions:" alone
           doc.setFont('helvetica', 'bold');
@@ -1112,11 +1114,11 @@ async function generateLetter() {
             yPos = 20;
           }
           doc.text(bulletLine, 20, yPos);
-          yPos += 4.5;
+          yPos += 3;
         });
       } else {
         // Regular text with proper wrapping
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('helvetica', line.includes('Best regards,') ? 'bold' : 'normal');
         const pageWidth = doc.internal.pageSize.getWidth();
         const maxWidth = pageWidth - 40;
         const textLines = doc.splitTextToSize(line, maxWidth);
@@ -1126,10 +1128,10 @@ async function generateLetter() {
             yPos = 20;
           }
           doc.text(textLine, 20, yPos);
-          yPos += 4.5;
+          yPos += 3;
         });
       }
-      yPos += 4.5;
+      yPos += 3;
     });
   } else {
     // Standard rendering for other letter types
@@ -1147,7 +1149,7 @@ async function generateLetter() {
   }
 
   // Footer signature - Keep on same page if possible
-  yPos += 15;
+  yPos += 8;
   if (yPos > 265) {
     doc.addPage();
     yPos = 20;
