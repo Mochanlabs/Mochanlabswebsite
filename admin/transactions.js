@@ -145,6 +145,8 @@ function submitForm(e) {
   const status = document.getElementById('status').value;
   const referenceId = document.getElementById('referenceId').value || '';
 
+  console.log('Form data:', { transactionId, type, amount, description, category, date, status, referenceId });
+
   if (!amount || !description) {
     alert('Please fill in Amount and Description');
     return;
@@ -159,23 +161,30 @@ function submitForm(e) {
     : `${API_URL}/api/transactions`;
   const method = transactionId ? 'PUT' : 'POST';
 
+  console.log(`📤 Sending ${method} to ${url}`, payload);
+
   fetch(url, {
     method,
     headers: getAuthHeaders(),
     body: JSON.stringify(payload)
   })
-  .then(r => r.json())
+  .then(r => {
+    console.log('📥 Response status:', r.status);
+    return r.json();
+  })
   .then(data => {
+    console.log('📋 Response data:', data);
     if (data.success) {
       alert('✅ Saved successfully!');
       closeForm();
       loadTransactions();
     } else {
       alert('❌ ' + (data.message || 'Error'));
+      console.error('Save failed:', data);
     }
   })
   .catch(err => {
-    console.error('Error:', err);
+    console.error('❌ Fetch error:', err);
     alert('❌ Error: ' + err.message);
   });
 }
@@ -206,14 +215,30 @@ function applyFilters() {
   // Filter by date range
   if (currentFilters.startDate || currentFilters.endDate) {
     filtered = filtered.filter(t => {
-      const transDate = new Date(t.date).toISOString().split('T')[0];
+      // Parse date safely - extract just the date part from ISO string
+      let transDate;
+      if (typeof t.date === 'string' && t.date.includes('T')) {
+        // ISO format: 2026-06-09T00:00:00.000Z
+        transDate = t.date.split('T')[0];
+      } else if (typeof t.date === 'string') {
+        // Already in YYYY-MM-DD format
+        transDate = t.date;
+      } else {
+        // Date object
+        transDate = new Date(t.date).toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD
+      }
+
+      console.log('Comparing transaction date:', transDate, 'against filter:', { start: currentFilters.startDate, end: currentFilters.endDate });
 
       if (currentFilters.startDate && transDate < currentFilters.startDate) {
+        console.log('  ❌ Date', transDate, 'is before', currentFilters.startDate);
         return false;
       }
       if (currentFilters.endDate && transDate > currentFilters.endDate) {
+        console.log('  ❌ Date', transDate, 'is after', currentFilters.endDate);
         return false;
       }
+      console.log('  ✅ Date', transDate, 'passes filter');
       return true;
     });
     console.log('After date filter:', filtered.length);
@@ -292,6 +317,9 @@ function renderTransactions(transactions) {
         <button class="icon-btn delete-btn" type="button" data-id="${t._id}" title="${t.isActive ? 'Mark as Inactive' : 'View'}">
           <i class="fas fa-${t.isActive ? 'trash' : 'eye'}"></i>
         </button>
+        <button class="icon-btn permanent-delete-btn" type="button" data-id="${t._id}" title="Permanently Delete" style="color: var(--red);">
+          <i class="fas fa-times-circle"></i>
+        </button>
       </div>
     </div>
   `).join('');
@@ -316,6 +344,15 @@ function renderTransactions(transactions) {
         console.log('🗑️ Inactivate clicked for:', id);
         openInactiveModal(id);
       }
+    });
+  });
+
+  // Permanent delete button listeners
+  document.querySelectorAll('.permanent-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      console.log('💀 Permanent delete clicked for:', id);
+      openPermanentDeleteModal(id);
     });
   });
 }
@@ -373,6 +410,92 @@ function submitInactiveForm(e) {
   })
   .catch(err => {
     console.error('Error:', err);
+    alert('❌ Error: ' + err.message);
+  });
+}
+
+function openPermanentDeleteModal(id) {
+  console.log('💀 Opening permanent delete modal for:', id);
+  inactivatingId = id;
+
+  // Clear and focus the input field
+  const confirmInput = document.getElementById('permanentDeleteConfirm');
+  if (confirmInput) {
+    confirmInput.value = '';
+    console.log('✅ Cleared confirm input');
+  }
+
+  const modal = document.getElementById('permanentDeleteModal');
+  console.log('Modal element:', modal);
+  if (modal) {
+    modal.classList.add('open');
+    console.log('✅ Modal opened');
+
+    // Focus the input field after modal opens
+    setTimeout(() => {
+      if (confirmInput) {
+        confirmInput.focus();
+        console.log('✅ Input field focused');
+      }
+    }, 100);
+  } else {
+    console.error('❌ permanentDeleteModal not found in DOM');
+  }
+}
+
+function closePermanentDeleteModal() {
+  const modal = document.getElementById('permanentDeleteModal');
+  if (modal) {
+    modal.classList.remove('open');
+  }
+  inactivatingId = null;
+}
+
+function submitPermanentDeleteForm(e) {
+  e.preventDefault();
+  console.log('Form submitted - inactivatingId:', inactivatingId);
+
+  const confirmInput = document.getElementById('permanentDeleteConfirm');
+  console.log('Confirm input element:', confirmInput);
+
+  if (!confirmInput) {
+    alert('❌ Error: Input field not found');
+    console.error('permanentDeleteConfirm input not found!');
+    return;
+  }
+
+  const confirmText = confirmInput.value.trim();
+  console.log('Confirm text input value:', confirmText, 'length:', confirmText.length);
+
+  if (confirmText !== 'YES') {
+    alert('❌ Please type "YES" to confirm');
+    return;
+  }
+
+  console.log('Permanently deleting transaction:', inactivatingId);
+  const url = `${API_URL}/api/transactions/${inactivatingId}?permanent=true`;
+  console.log('Delete URL:', url);
+
+  fetch(url, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  })
+  .then(r => {
+    console.log('Response status:', r.status);
+    return r.json();
+  })
+  .then(data => {
+    console.log('Response data:', data);
+    if (data.success) {
+      alert('✅ Transaction permanently deleted!');
+      closePermanentDeleteModal();
+      loadTransactions();
+    } else {
+      alert('❌ ' + (data.message || 'Error'));
+    }
+  })
+  .catch(err => {
+    console.error('Error deleting:', err);
     alert('❌ Error: ' + err.message);
   });
 }
@@ -605,6 +728,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inactiveForm) {
       inactiveForm.addEventListener('submit', submitInactiveForm);
       console.log('✅ Inactive form listener attached');
+    }
+  }
+
+  // Permanent delete modal
+  const permanentDeleteModal = document.getElementById('permanentDeleteModal');
+  if (permanentDeleteModal) {
+    const closeBtn = permanentDeleteModal.querySelector('.close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closePermanentDeleteModal);
+    }
+    permanentDeleteModal.addEventListener('click', (e) => {
+      if (e.target.id === 'permanentDeleteModal') closePermanentDeleteModal();
+    });
+
+    const permanentDeleteForm = document.getElementById('permanentDeleteForm');
+    if (permanentDeleteForm) {
+      permanentDeleteForm.addEventListener('submit', submitPermanentDeleteForm);
+      console.log('✅ Permanent delete form listener attached');
     }
   }
 

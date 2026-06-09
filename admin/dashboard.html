@@ -1165,14 +1165,34 @@ async function loadInvoiceLogoAsBase64() {
   }
 }
 
+async function loadInvoiceSignatureAsBase64() {
+  try {
+    const response = await fetch('../images/signature.png');
+    if (!response.ok) throw new Error('Signature not found');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result;
+        resolve(base64);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.log('Could not load signature:', err);
+    return null;
+  }
+}
+
 /* ===== Download PDF ===== */
 async function downloadPDF() {
   try {
     const data = getFormData();
     if (!data.number) { showToast('Enter an invoice number first', 'error'); return; }
 
-    // Load logo
+    // Load logo and signature
     const logoBase64 = await loadInvoiceLogoAsBase64();
+    const signatureBase64 = await loadInvoiceSignatureAsBase64();
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -1312,9 +1332,48 @@ async function downloadPDF() {
   doc.text('TOTAL', col1, ty);
   doc.text(sym + data.grandTotal.toFixed(2), col2, ty, { align: 'right' });
 
+  /* Authorized Signatory */
+  ty = ty + 20;
+
+  // Add signature image if available
+  if (signatureBase64) {
+    try {
+      doc.addImage(signatureBase64, 'PNG', margin, ty - 5, 35, 16);
+      ty += 12;
+    } catch (imgErr) {
+      console.warn('Could not add signature image, using fallback line:', imgErr);
+      // Fallback: Draw signature line if image is corrupt
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(margin, ty, margin + 40, ty);
+      ty += 6;
+    }
+  } else {
+    // Fallback: Draw signature line if image not found
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(margin, ty, margin + 40, ty);
+    ty += 6;
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Authorized Signatory', margin, ty + 6);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Rajesh Chopra', margin, ty + 12);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Director, Mochan Labs', margin, ty + 17);
+
   /* Footer light blue */
   const pageH = doc.internal.pageSize.getHeight();
-  ty = ty + 16;
+  ty = ty + 24;
   doc.setFillColor(0, 180, 216);
   doc.rect(margin, ty, w - 2 * margin, 12, 'F');
   doc.setFontSize(8);

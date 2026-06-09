@@ -258,6 +258,29 @@
     </div>
   </div>
 
+  <!-- Permanent Delete Modal -->
+  <div class="form-modal" id="permanentDeleteModal">
+    <div class="form-content">
+      <div class="form-header">
+        <h2><i class="fas fa-exclamation-triangle"></i> Permanently Delete Transaction</h2>
+        <button class="close-btn" type="button">&times;</button>
+      </div>
+      <form id="permanentDeleteForm">
+        <p style="color: var(--red); margin-bottom: 15px; font-weight: 600;">
+          ⚠️ WARNING: This action cannot be undone. The transaction will be permanently removed from the database.
+        </p>
+        <div class="form-group">
+          <label>Type "YES" to confirm deletion:</label>
+          <input type="text" id="permanentDeleteConfirm" placeholder="YES" style="font-size: 1.1rem; text-align: center; letter-spacing: 2px;">
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%; background: var(--red);">
+          <i class="fas fa-trash"></i> Permanently Delete
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="transactions.js"></script>
 </body>

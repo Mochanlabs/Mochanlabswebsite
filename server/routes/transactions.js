@@ -163,6 +163,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const isPermanent = req.query.permanent === 'true';
     const { inactiveComments } = req.body;
     const transaction = await Transaction.findById(req.params.id);
 
@@ -173,24 +174,35 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Mark as inactive instead of deleting
-    transaction.isActive = false;
-    transaction.inactiveDate = new Date();
-    transaction.inactiveComments = inactiveComments || '';
-    await transaction.save();
+    if (isPermanent) {
+      // Permanent delete - remove from database
+      await Transaction.findByIdAndDelete(req.params.id);
+      logger.info('Transaction permanently deleted', { transactionId: req.params.id });
 
-    logger.info('Transaction marked as inactive', { transactionId: transaction._id, comments: inactiveComments });
+      res.json({
+        success: true,
+        message: 'Transaction permanently deleted'
+      });
+    } else {
+      // Soft delete - mark as inactive
+      transaction.isActive = false;
+      transaction.inactiveDate = new Date();
+      transaction.inactiveComments = inactiveComments || '';
+      await transaction.save();
 
-    res.json({
-      success: true,
-      message: 'Transaction marked as inactive successfully',
-      data: transaction
-    });
+      logger.info('Transaction marked as inactive', { transactionId: transaction._id, comments: inactiveComments });
+
+      res.json({
+        success: true,
+        message: 'Transaction marked as inactive successfully',
+        data: transaction
+      });
+    }
   } catch (error) {
-    logger.error('Error marking transaction as inactive', { error: error.message });
+    logger.error('Error deleting transaction', { error: error.message });
     res.status(500).json({
       success: false,
-      message: 'Error marking transaction as inactive'
+      message: 'Error deleting transaction'
     });
   }
 });

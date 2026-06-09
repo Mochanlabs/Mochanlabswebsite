@@ -340,4 +340,19 @@ router.delete('/:empId/identity/:docId', async (req, res) => {
   }
 });
 
+// DELETE position history record
+router.delete('/:empId/position-history/:posId', async (req, res) => {
+  try {
+    const result = await EmployeePositionHistory.findByIdAndDelete(req.params.posId);
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Position history record not found' });
+    }
+
+    res.json({ success: true, message: 'Position history deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

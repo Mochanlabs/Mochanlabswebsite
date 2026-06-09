@@ -512,11 +512,9 @@ function displayPositionChanges() {
               <td style="padding: 10px; text-align: right; font-size: 0.9rem; color: var(--green); font-weight: 600;">₹${change.ctc.toLocaleString('en-IN')}</td>
               <td style="padding: 10px; font-size: 0.9rem;">${new Date(change.effectiveDate).toLocaleDateString('en-IN')}</td>
               <td style="padding: 10px; text-align: center;">
-                ${tempPositionChanges.find(t => t.id === change.id) ? `
-                  <button type="button" class="icon-btn" onclick="removePositionChange(${change.id})" title="Remove" style="color: var(--red);">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                ` : '<span style="color: var(--muted); font-size: 0.8rem;">Saved</span>'}
+                <button type="button" class="icon-btn delete-position-btn" data-position-id="${change.id}" title="Remove" style="color: var(--red);">
+                  <i class="fas fa-trash"></i>
+                </button>
               </td>
             </tr>
           `).join('')}
@@ -525,10 +523,76 @@ function displayPositionChanges() {
     </div>
   `;
   document.getElementById('positionHistoryContainer').innerHTML = html;
+
+  // Attach delete event listeners
+  const deleteBtns = document.querySelectorAll('.delete-position-btn');
+  console.log('Found', deleteBtns.length, 'delete position buttons');
+  deleteBtns.forEach((btn, idx) => {
+    console.log('Attaching listener to button', idx, 'with id:', btn.dataset.positionId);
+    btn.addEventListener('click', (e) => {
+      console.log('Delete position button clicked!', e);
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.dataset.positionId;
+      console.log('Calling removePositionChange with id:', id);
+      removePositionChange(id);
+    });
+  });
 }
 
 // Remove Position Change
-function removePositionChange(id) {
+async function removePositionChange(id) {
+  console.log('removePositionChange called with id:', id, 'type:', typeof id);
+  console.log('tempPositionChanges:', tempPositionChanges);
+  console.log('positionHistory:', positionHistory);
+
+  // Check if it's in temp array (unsaved)
+  const inTemp = tempPositionChanges.find(c => c.id == id);
+  if (inTemp) {
+    console.log('Found in tempPositionChanges, removing...');
+    tempPositionChanges = tempPositionChanges.filter(t => t.id !== id);
+    displayPositionChanges();
+    showToast('Position change removed', 'success');
+    return;
+  }
+
+  // Check if it's in saved history
+  const inHistory = positionHistory.find(c => c._id == id || String(c._id) === String(id));
+  if (inHistory) {
+    console.log('Found in positionHistory, deleting from backend:', inHistory);
+    const empId = document.getElementById('employeeId').value;
+
+    try {
+      const deleteUrl = `${API_URL}/api/employees/${empId}/position-history/${inHistory._id}`;
+      console.log('DELETE URL:', deleteUrl);
+
+      const res = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      const data = await res.json();
+      console.log('Delete response:', res.status, data);
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Failed to delete');
+      }
+
+      // Remove from positionHistory array
+      positionHistory = positionHistory.filter(c => c._id !== inHistory._id);
+      displayPositionChanges();
+      showToast('Position change deleted', 'success');
+      return;
+    } catch (err) {
+      console.error('Error deleting position change:', err);
+      showToast('Error: ' + err.message, 'error');
+      return;
+    }
+  }
+
+  console.warn('Position change not found with id:', id);
+
+  // Remove from temp array
   tempPositionChanges = tempPositionChanges.filter(t => t.id !== id);
   displayPositionChanges();
   showToast('Position change removed', 'success');
@@ -632,11 +696,9 @@ function displayIdentityDocuments() {
                 ${doc.fileName ? `<i class="fas fa-file"></i> ${doc.fileName}` : '<span style="color: var(--muted);">No file</span>'}
               </td>
               <td style="padding: 10px; text-align: center;">
-                ${doc.isSaved ? '<span style="color: var(--muted); font-size: 0.8rem;">Saved</span>' : `
-                  <button type="button" class="icon-btn" onclick="removeIdentityDocument(${doc.id})" title="Remove" style="color: var(--red);">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                `}
+                <button type="button" class="icon-btn delete-identity-btn" data-identity-id="${doc.id}" title="Delete" style="color: var(--red);">
+                  <i class="fas fa-trash"></i>
+                </button>
               </td>
             </tr>
           `).join('')}
@@ -645,30 +707,65 @@ function displayIdentityDocuments() {
     </div>
   `;
   document.getElementById('identityListContainer').innerHTML = html;
+
+  // Attach delete event listeners
+  const deleteIdentityBtns = document.querySelectorAll('.delete-identity-btn');
+  console.log('Found', deleteIdentityBtns.length, 'delete identity buttons');
+  deleteIdentityBtns.forEach((btn, idx) => {
+    console.log('Attaching listener to identity button', idx, 'with id:', btn.dataset.identityId);
+    btn.addEventListener('click', (e) => {
+      console.log('Delete identity button clicked!', e);
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.dataset.identityId;
+      console.log('Calling removeIdentityDocument with id:', id);
+      removeIdentityDocument(id);
+    });
+  });
 }
 
 // Remove Identity Document
 async function removeIdentityDocument(id) {
-  const doc = tempIdentityDocuments.find(d => d.id === id);
-  if (!doc) return;
+  console.log('removeIdentityDocument called with id:', id, 'type:', typeof id);
+  console.log('tempIdentityDocuments:', tempIdentityDocuments);
+
+  const doc = tempIdentityDocuments.find(d => d.id == id);
+  if (!doc) {
+    console.warn('Document not found with id:', id);
+    return;
+  }
+
+  console.log('Found document:', doc);
 
   // If document is saved, delete from backend
   if (doc.isSaved) {
     const empId = document.getElementById('employeeId').value;
+    console.log('Deleting saved identity document:', doc.id, 'from employee:', empId);
+
     try {
-      const res = await fetch(`${API_URL}/api/employees/${empId}/identity/${id}`, {
+      const deleteUrl = `${API_URL}/api/employees/${empId}/identity/${id}`;
+      console.log('DELETE URL:', deleteUrl);
+
+      const res = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
 
+      const data = await res.json();
+      console.log('Delete response:', res.status, data);
+
       if (!res.ok) {
-        throw new Error((await res.json()).error || 'Failed to delete');
+        throw new Error(data.error || data.message || 'Failed to delete');
       }
+
+      console.log('Document deleted successfully from backend');
     } catch (err) {
       console.error('Error deleting identity document:', err);
       showToast('Error: ' + err.message, 'error');
       return;
     }
+  } else {
+    console.log('Document is unsaved, removing from temp array');
   }
 
   tempIdentityDocuments = tempIdentityDocuments.filter(d => d.id !== id);
@@ -864,6 +961,26 @@ async function loadLogoAsBase64() {
   }
 }
 
+// Load signature image as base64
+async function loadSignatureAsBase64() {
+  try {
+    const response = await fetch('../images/signature.png');
+    if (!response.ok) throw new Error('Signature not found');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result;
+        resolve(base64);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.log('Could not load signature:', err);
+    return null;
+  }
+}
+
 // Generate letter
 async function generateLetter() {
   const emp = employees.find(e => e._id === selectedEmployeeId);
@@ -872,8 +989,9 @@ async function generateLetter() {
   console.log('Generating', selectedLetterType, 'for', emp.firstName);
 
   try {
-    // Load and convert logo to base64
+    // Load and convert logo and signature to base64
     const logoBase64 = await loadLogoAsBase64();
+    const signatureBase64 = await loadSignatureAsBase64();
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -904,7 +1022,7 @@ async function generateLetter() {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
-  doc.text(`Date: ${today}`, 160, 50, { align: 'right' });
+  doc.text(`Date: ${today}`, 190, 50, { align: 'right' });
 
   // Letter content based on type
   let letterContent = '';
@@ -940,28 +1058,137 @@ async function generateLetter() {
   doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
 
-  const lines = doc.splitTextToSize(letterContent, 170);
   let yPos = 80;
-  lines.forEach(line => {
-    if (yPos > 270) {
-      doc.addPage();
-      yPos = 20;
-    }
-    doc.text(line, 20, yPos);
-    yPos += 6;
-  });
 
-  // Footer signature
-  yPos += 20;
-  if (yPos > 250) {
+  // Special rendering for offer letter with bold details
+  if (selectedLetterType === 'offer') {
+    const lines = letterContent.split('\n');
+
+    lines.forEach(line => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Make employment details and section headers bold
+      if (line.includes('Position:') || line.includes('Department:') || line.includes('Date of Joining:') || line.includes('CTC:') || line.includes('Terms & Conditions:')) {
+        const parts = line.split(': ');
+        if (parts.length === 2) {
+          // Render label (bold) and value (normal) with proper wrapping
+          doc.setFont('helvetica', 'bold');
+          const labelWidth = doc.getTextWidth(parts[0] + ': ');
+          doc.text(parts[0] + ':', 20, yPos);
+
+          // Split value text to fit within page width (170mm width for text, with margins)
+          const valueLines = doc.splitTextToSize(parts[1], 170 - 20 - labelWidth);
+          doc.setFont('helvetica', 'normal');
+
+          // Render first line of value on same line as label
+          if (valueLines.length > 0) {
+            doc.text(valueLines[0], 20 + labelWidth, yPos);
+            // Render additional lines below if text wraps
+            let valueYPos = yPos + 6;
+            for (let i = 1; i < valueLines.length; i++) {
+              doc.text(valueLines[i], 20, valueYPos);
+              valueYPos += 6;
+            }
+            yPos = valueYPos - 6; // Update yPos to account for wrapped lines
+          }
+        } else {
+          // For "Terms & Conditions:" alone
+          doc.setFont('helvetica', 'bold');
+          doc.text(line, 20, yPos);
+          doc.setFont('helvetica', 'normal');
+        }
+      } else if (line.trim().startsWith('•')) {
+        // Regular bullet points with proper wrapping
+        doc.setFont('helvetica', 'normal');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const maxWidth = pageWidth - 40;
+        const bulletLines = doc.splitTextToSize(line, maxWidth);
+        bulletLines.forEach((bulletLine, idx) => {
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(bulletLine, 20, yPos);
+          yPos += 4.5;
+        });
+      } else {
+        // Regular text with proper wrapping
+        doc.setFont('helvetica', 'normal');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const maxWidth = pageWidth - 40;
+        const textLines = doc.splitTextToSize(line, maxWidth);
+        textLines.forEach((textLine, idx) => {
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(textLine, 20, yPos);
+          yPos += 4.5;
+        });
+      }
+      yPos += 4.5;
+    });
+  } else {
+    // Standard rendering for other letter types
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const maxWidth = pageWidth - 40; // 20mm margins on each side
+    const lines = doc.splitTextToSize(letterContent, maxWidth);
+    lines.forEach(line => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(line, 20, yPos);
+      yPos += 4.5;
+    });
+  }
+
+  // Footer signature - Keep on same page if possible
+  yPos += 15;
+  if (yPos > 265) {
     doc.addPage();
     yPos = 20;
   }
 
+  // Add signature image if available
+  if (signatureBase64) {
+    try {
+      doc.addImage(signatureBase64, 'PNG', 20, yPos - 5, 40, 18);
+      yPos += 15;
+    } catch (imgErr) {
+      console.warn('Could not add signature image, using fallback line:', imgErr);
+      // Fallback: Draw signature line if image is corrupt
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPos, 60, yPos);
+      yPos += 4.5;
+    }
+  } else {
+    // Fallback: Draw signature line if image not found
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 60, yPos);
+    yPos += 6;
+  }
+
+  // Signature label
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Authorized Signatory', 20, yPos + 6);
+
+  // Company name under signature
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('Authorized Signatory', 20, yPos);
-  doc.text('MOCHAN LABS', 20, yPos + 15);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Rajesh Chopra', 20, yPos + 12);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Director, Mochan Labs', 20, yPos + 17);
 
   // Add footer to all pages
   const pageCount = doc.getNumberOfPages();
@@ -992,22 +1219,30 @@ async function generateLetter() {
 
 // Letter templates
 function generateOfferLetter(emp, date) {
+  const joinDate = emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString('en-IN') : 'To be confirmed';
+  const ctc = emp.ctc ? `Rs. ${emp.ctc.toLocaleString('en-IN')} per month` : 'As discussed';
+  const probation = emp.probationPeriod || '2 months';
+  const position = emp.position || 'Software Engineer';
+  const department = emp.department || 'Engineering';
+
   return `Dear ${emp.firstName} ${emp.lastName},
 
-We are pleased to extend an offer of employment to you for the position of ${emp.position || 'Software Engineer'} at Mochan Labs.
+We are pleased to extend an offer of employment to you for the position of ${position} at Mochan Labs.
 
 Your employment details are as follows:
 
-Position: ${emp.position || 'Software Engineer'}
-Department: ${emp.department || 'Engineering'}
-Date of Joining: [To be confirmed]
-CTC: [Amount as discussed]
+Position: ${position}
+Department: ${department}
+Date of Joining: ${joinDate}
+CTC: ${ctc}
 
 Terms & Conditions:
 • Your employment is subject to the successful completion of background verification.
 • You will be required to sign our standard employment contract.
 • You will adhere to the company's policies and procedures.
-• Your employment is at-will and can be terminated by either party with due notice.
+• Your employment is on probation for ${probation}.
+• You have to give 1 month notice period for resignation or termination.
+• Your employment is at-will and can be terminated by either party with due notice as per applicable laws.
 
 Please confirm your acceptance of this offer by signing and returning this letter. If you have any questions, please do not hesitate to contact us.
 
