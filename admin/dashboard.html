@@ -1390,7 +1390,15 @@ async function downloadPDF() {
     if (data.terms)  { doc.setFont('helvetica','bold'); doc.text('Terms:',  margin, ny); doc.setFont('helvetica','normal'); doc.text(doc.splitTextToSize(data.terms, 80),  margin + 14, ny); }
   }
 
-  doc.save('Invoice-' + data.number + '.pdf');
+  const pdfBlob = doc.output('blob');
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'Invoice-' + data.number + '.pdf';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
   showToast('PDF downloaded!', 'info');
   } catch (err) {
     console.error('Error downloading PDF:', err);

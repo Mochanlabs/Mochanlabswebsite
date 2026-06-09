@@ -1203,9 +1203,17 @@ async function generateLetter() {
     doc.text(footerText, 105, 291, { align: 'center' });
   }
 
-  // Save and download
+  // Save and download using blob method (no permission dialog)
   const fileName = `${emp.firstName}_${emp.lastName}_${selectedLetterType}.pdf`;
-  doc.save(fileName);
+  const pdfBlob = doc.output('blob');
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
   showToast(`${letterTitle} downloaded!`, 'success');
 
   // Save letter info to backend
