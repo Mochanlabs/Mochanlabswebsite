@@ -1184,7 +1184,7 @@ async function generateLetter() {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
-  doc.text('Rajesh Chopra', 20, yPos + 12);
+  doc.text('Ankush Chopra', 20, yPos + 12);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
@@ -1220,7 +1220,8 @@ async function generateLetter() {
 // Letter templates
 function generateOfferLetter(emp, date) {
   const joinDate = emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString('en-IN') : 'To be confirmed';
-  const ctc = emp.ctc ? `Rs. ${emp.ctc.toLocaleString('en-IN')} per month` : 'As discussed';
+  // Calculate annual CTC (assuming monthly input, multiply by 12)
+  const ctc = emp.ctc ? `Rs. ${(emp.ctc * 12).toLocaleString('en-IN')} per annum` : 'As discussed';
   const probation = emp.probationPeriod || '2 months';
   const position = emp.position || 'Software Engineer';
   const department = emp.department || 'Engineering';
